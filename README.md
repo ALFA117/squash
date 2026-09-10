@@ -24,6 +24,47 @@ x402 on Hedera. No API key, no subscription, no seat.
 |---|---|
 | Netting engine + exact minimum solver | **done**, 15 tests green |
 | `POST /api/v1/net`, priced per obligation | **done**, live |
+| Group + settlement plan UI, six screens | **done**, live |
+| x402 gate, Hedera `exact` scheme | **done** |
+| Agent completing a real paid request | **done — settled on testnet** |
+| HCS proof-of-run audit trail | **done — published on testnet** |
+| Scheduled Transaction atomic settlement | wired, not yet exercised |
+| Privy embedded wallets | next |
+| World Selfie Check on group join | next |
+
+---
+
+## Proof
+
+Not a claim — go and look. One netting run, paid for and published:
+
+**The payment** — [`0.0.7162784@1789008230.889484170`](https://hashscan.io/testnet/transaction/0.0.7162784-1789008230-889484170)
+
+```
+result  SUCCESS   CRYPTOTRANSFER
+  0.0.10452163   -525,000 tinybars   the agent, paying for the work
+  0.0.10450391   +525,000 tinybars   the engine, getting paid
+  0.0.7162784    -261,818 tinybars   the facilitator, paying the network fee
+```
+
+That last line is the point. The agent spent **0.00525 ℏ** on the work and
+**nothing** on gas — the facilitator sponsored the fee. A caller can pay for a
+service without holding the network's token.
+
+**The proof of the run** — topic [`0.0.10452145`](https://hashscan.io/testnet/topic/0.0.10452145), message 1:
+
+```json
+{"v":1,"inputHash":"49eba72dc6cbd954d59d92b4d8da17d7c6b9f4d2f5d5d4a7cd56a1d13527c114",
+ "obligations":15,"transfers":3,"compression":0.8,"optimal":true,
+ "plan":["tu>rosa:204000","diego>mariana:111000","luis>ana:57000"]}
+```
+
+Hash the same obligations yourself, find the message, and check that the plan
+we published is the plan we ran. The compression is auditable, not asserted.
+
+---|---|
+| Netting engine + exact minimum solver | **done**, 15 tests green |
+| `POST /api/v1/net`, priced per obligation | **done**, live |
 | Group + settlement plan UI | **done**, live |
 | x402 402-challenge on Hedera `exact` scheme | **done** — schema checked against the live facilitator |
 | Agent that discovers the service and is quoted | **done** (`scripts/agent.mjs`) |
@@ -32,10 +73,6 @@ x402 on Hedera. No API key, no subscription, no seat.
 | Scheduled Transaction atomic settlement | next |
 | Privy embedded wallets | next |
 | World Selfie Check on group join | next |
-
-Everything above the line runs today with no credentials. The two "needs an
-account" rows are wired end to end but have not yet moved real testnet HBAR —
-that takes one free account from the Hedera portal and nothing else.
 
 ---
 
@@ -93,10 +130,15 @@ who brings a bigger graph pays for the bigger graph:
 | 51–200 | 0.00028 ℏ |
 | 201+ | 0.00021 ℏ |
 
-Today the route answers for free and returns the quote it *would* charge, so the
-UI could be built against it. Turning on `X402_ENABLED` moves that same quote
-into a `402 Payment Required` challenge and verifies the `X-PAYMENT` header
-through the Blocky402 facilitator before any work runs.
+With `X402_ENABLED=true` an unpaid call is answered with `402` and the payment
+requirements — carried in the `PAYMENT-REQUIRED` header, which is where the v2
+protocol puts them; only v1 clients read the body. The caller retries with
+`PAYMENT-SIGNATURE`, which is verified and settled through the Blocky402
+facilitator before any work is done.
+
+Build the payment with the official `@x402/hedera` client, not by hand. The
+facilitator validates the serialized transaction strictly and rejects a
+hand-rolled one with a bare 500 and no diagnostic.
 
 ---
 
@@ -134,8 +176,14 @@ src/lib/pricing.ts        metered per-obligation quote
 src/lib/sample.ts         the demo group
 src/app/api/v1/net/       the metered endpoint
 src/app/page.tsx          group ledger
+src/lib/x402.ts           the 402 challenge and the facilitator calls
+src/lib/hcs.ts            proof-of-run published to the consensus service
+src/lib/scheduled.ts      the plan as one all-or-nothing scheduled transfer
 src/app/plan/page.tsx     the settlement plan — calls the engine over HTTP
 src/components/DebtGraph  the before/after picture, laid out from the data
+scripts/agent.mjs         the paying agent
+scripts/create-topic.mjs  one-time HCS topic setup
+scripts/create-agent.mjs  funds a second account so the agent is not the payee
 ```
 
 The plan screen calls the API over HTTP rather than importing the engine, so the

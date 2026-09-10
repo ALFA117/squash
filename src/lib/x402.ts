@@ -123,24 +123,77 @@ export async function buildRequirements(args: {
   };
 }
 
-/** The body of a 402 answer. `accepts` is what the caller pays against. */
-export function challenge(requirements: PaymentRequirements, error: string) {
-  return {
+/**
+ * The body of a 402 answer. `accepts` is what the caller pays against.
+ *
+ * Protocol v2 also requires a top-level `resource` describing what was asked
+ * for; without it the official client refuses the challenge with "Invalid
+ * payment required response" and never gets as far as paying. The result is
+ * validated against the SDK's own schema so this cannot drift again unnoticed.
+ */
+export async function challenge(
+  requirements: PaymentRequirements,
+  error: string,
+  resource: { url: string; method: string },
+) {
+  const body = {
     x402Version: X402_VERSION,
     error,
+    resource,
     accepts: [requirements],
   };
+
+  try {
+    const { PaymentRequiredSchema } = await import("@x402/core/schemas");
+    const parsed = PaymentRequiredSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new Error(
+        `402 body does not match the x402 v2 schema: ${JSON.stringify(parsed.error.issues)}`,
+      );
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith("402 body")) throw e;
+    // Schema package unavailable — send the body as built.
+  }
+
+  return body;
 }
 
-export function decodePaymentHeader(header: string | null): PaymentPayload | null {
-  if (!header) return null;
+/**
+ * Protocol v2 carries the challenge in the PAYMENT-REQUIRED header — only v1
+ * clients read it from the body. Send both: the header is what the official
+ * client parses, the body is what a human sees in curl.
+ */
+export async function challengeHeader(body: unknown): Promise<Record<string, string>> {
   try {
-    const json = Buffer.from(header, "base64").toString("utf8");
-    const parsed = JSON.parse(json) as PaymentPayload;
-    if (!parsed || typeof parsed !== "object" || !parsed.payload) return null;
-    return parsed;
+    const { encodePaymentRequiredHeader } = await import("@x402/core/http");
+    return { "PAYMENT-REQUIRED": encodePaymentRequiredHeader(body as never) };
   } catch {
-    return null;
+    return {};
+  }
+}
+
+/**
+ * The v2 protocol carries the payment in PAYMENT-SIGNATURE. Decoding is the
+ * SDK's job — the encoding has changed between protocol versions and guessing
+ * it costs a day. X-PAYMENT is accepted too, for older clients.
+ */
+export async function readPayment(request: Request): Promise<PaymentPayload | null> {
+  const header =
+    request.headers.get("payment-signature") ?? request.headers.get("x-payment");
+  if (!header) return null;
+
+  try {
+    const { decodePaymentSignatureHeader } = await import("@x402/core/http");
+    return decodePaymentSignatureHeader(header) as unknown as PaymentPayload;
+  } catch {
+    // Fall back to a plain base64 JSON envelope.
+    try {
+      const parsed = JSON.parse(Buffer.from(header, "base64").toString("utf8")) as PaymentPayload;
+      return parsed?.payload ? parsed : null;
+    } catch {
+      return null;
+    }
   }
 }
 

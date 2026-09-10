@@ -2,18 +2,20 @@
 /**
  * The paying agent.
  *
- * Discovers the netting service, gets told what it costs, pays, and gets its
- * answer. No API key, no account with us, no subscription — it just pays for
- * the graph it brought.
+ * Discovers the netting service, is told what it costs, pays, and gets its
+ * answer. No API key, no account with us, no subscription — it pays for the
+ * graph it brought.
  *
  *   node scripts/agent.mjs [url]
  *
- * Needs HEDERA_OPERATOR_ID / HEDERA_OPERATOR_KEY in .env.local for a funded
- * TESTNET account. Never point this at a key holding real funds.
+ * The payment payload is built by the official @x402/hedera client rather than
+ * by hand. The facilitator validates the serialized transaction strictly and
+ * rejects a hand-rolled one with no diagnostic at all.
  */
 
-import { AccountId, Hbar, TransferTransaction, TransactionId } from "@hashgraph/sdk";
-import { loadEnv, parseKey } from "./key.mjs";
+import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
+import { ExactHederaScheme, PrivateKey, createClientHederaSigner } from "@x402/hedera";
+import { loadEnv } from "./key.mjs";
 
 loadEnv(new URL("../.env.local", import.meta.url));
 
@@ -32,37 +34,43 @@ const WORK = {
 
 const log = (...a) => console.log(...a);
 const rule = () => log("─".repeat(64));
+const REQUEST = {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(WORK),
+};
+
+function readKey(raw, type) {
+  const value = String(raw ?? "").trim().replace(/^0x/, "");
+  const declared = String(type ?? "").trim().toUpperCase();
+  if (declared === "ED25519") return PrivateKey.fromStringED25519(value);
+  if (declared === "ECDSA") return PrivateKey.fromStringECDSA(value);
+  return PrivateKey.fromStringDer(value);
+}
 
 async function main() {
+  // Ask once without paying, purely so the challenge is visible on camera.
   rule();
   log("STEP 1  asking for the work, carrying no payment");
   log(`        POST ${ENDPOINT}`);
 
-  const first = await fetch(ENDPOINT, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(WORK),
-  });
+  const probe = await fetch(ENDPOINT, REQUEST);
 
-  if (first.status === 200) {
-    const body = await first.json();
-    log(`        200 OK — the gate is off (gated: ${body.gated})`);
+  if (probe.status === 200) {
+    const data = await probe.json();
+    log(`        200 OK — the gate is off (gated: ${data.gated})`);
     log("        Set X402_ENABLED=true to make this a paid request.");
-    report(body);
+    report(data, probe);
     return;
   }
 
-  if (first.status !== 402) {
-    log(`        unexpected ${first.status}: ${(await first.text()).slice(0, 300)}`);
+  if (probe.status !== 402) {
+    log(`        unexpected ${probe.status}: ${(await probe.text()).slice(0, 300)}`);
     process.exit(1);
   }
 
-  const challenge = await first.json();
+  const challenge = await probe.json();
   const req = challenge.accepts?.[0];
-  if (!req) {
-    log("        402 with no `accepts` — cannot pay");
-    process.exit(1);
-  }
 
   rule();
   log("STEP 2  402 Payment Required");
@@ -72,90 +80,72 @@ async function main() {
   log(`        payTo        ${req.payTo}`);
   log(`        feePayer     ${req.extra?.feePayer}  <- the facilitator sponsors the fee`);
 
-  const operatorId = process.env.HEDERA_OPERATOR_ID;
-  const operatorKey = process.env.HEDERA_OPERATOR_KEY;
-  if (!operatorId || !operatorKey) {
+  const accountId = process.env.AGENT_ACCOUNT_ID;
+  const rawKey = process.env.AGENT_KEY;
+  if (!accountId || !rawKey) {
     log("");
-    log("        No HEDERA_OPERATOR_ID / HEDERA_OPERATOR_KEY — cannot sign.");
-    log("        Create a free testnet account at https://portal.hedera.com/");
-    log("        and put the values in .env.local. Nothing else is needed.");
+    log("        No AGENT_ACCOUNT_ID / AGENT_KEY — cannot sign.");
+    log("        Run: node scripts/create-agent.mjs");
+    process.exit(1);
+  }
+  if (accountId === req.payTo) {
+    log("");
+    log("        The agent and the service are the same account — a transfer");
+    log("        that nets to nothing. Run: node scripts/create-agent.mjs");
     process.exit(1);
   }
 
   rule();
-  log("STEP 3  building and partially signing the transfer");
+  log("STEP 3  paying and retrying");
+  log(`        paying from  ${accountId}`);
 
-  const payer = AccountId.fromString(operatorId);
-  const feePayer = AccountId.fromString(req.extra.feePayer);
-  const key = parseKey(operatorKey);
-  const tinybars = Number(req.amount);
+  const signer = createClientHederaSigner(accountId, readKey(rawKey, process.env.AGENT_KEY_TYPE));
 
-  // The transaction id names the FEE PAYER, so the facilitator's account is
-  // the one charged for network fees. We only move our own funds.
-  const transfer = new TransferTransaction()
-    .setTransactionId(TransactionId.generate(feePayer))
-    .setNodeAccountIds([new AccountId(3)])
-    .addHbarTransfer(payer, Hbar.fromTinybars(-tinybars))
-    .addHbarTransfer(AccountId.fromString(req.payTo), Hbar.fromTinybars(tinybars))
-    .freeze();
-
-  const signed = await transfer.sign(key);
-  const b64 = Buffer.from(signed.toBytes()).toString("base64");
-
-  log(`        signed by    ${operatorId}  (partial — fee payer signs next)`);
-  log(`        payload      ${b64.slice(0, 44)}…  (${b64.length} bytes)`);
-
-  const header = Buffer.from(
-    JSON.stringify({
-      x402Version: 2,
-      scheme: req.scheme,
-      network: req.network,
-      payload: { transaction: b64 },
-    }),
-  ).toString("base64");
-
-  rule();
-  log("STEP 4  retrying with X-PAYMENT");
+  // The SDK's default spend controls only allow each chain's default asset,
+  // which on Hedera is USDC. We price in HBAR, so allow it explicitly rather
+  // than switching off the guardrail wholesale.
+  const client = new x402Client()
+    .register(req.network, new ExactHederaScheme(signer))
+    .setSpendControls({ allowedAssets: true });
+  const fetchWithPay = wrapFetchWithPayment(fetch, client);
 
   const started = Date.now();
-  const second = await fetch(ENDPOINT, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-payment": header },
-    body: JSON.stringify(WORK),
-  });
+  const paidResponse = await fetchWithPay(ENDPOINT, REQUEST);
   const elapsed = Date.now() - started;
 
-  const body = await second.json();
+  const data = await paidResponse.json();
 
-  if (second.status !== 200) {
-    log(`        ${second.status} — ${body.error ?? JSON.stringify(body).slice(0, 300)}`);
+  if (paidResponse.status !== 200) {
+    log(`        ${paidResponse.status} — ${data.error ?? JSON.stringify(data).slice(0, 300)}`);
     process.exit(1);
   }
 
+  rule();
+  log("STEP 4  paid");
   log(`        200 OK in ${elapsed} ms`);
-  log(`        paid         ${body.paid}`);
-  if (body.payer) log(`        payer        ${body.payer}`);
-  if (body.receipt) log(`        receipt      ${body.receipt}`);
-  const hcs = second.headers.get("hcs-message");
-  if (hcs) log(`        hcs-message  ${hcs}`);
+  log(`        paid         ${data.paid}`);
+  if (data.payer) log(`        payer        ${data.payer}`);
+  if (data.receipt) log(`        receipt      ${data.receipt}`);
 
-  report(body);
+  report(data, paidResponse);
 }
 
-function report(body) {
+function report(data, response) {
+  const hcs = response?.headers?.get?.("hcs-message");
   rule();
   log("RESULT");
-  log(`        ${body.grossEdges.length} obligations  ->  ${body.transfers.length} transfers`);
-  log(`        compression  ${Math.round(body.compression * 100)}%`);
-  log(`        minimal      ${body.optimal ? "yes, proven" : "no, greedy fallback"}`);
+  log(`        ${data.grossEdges.length} obligations  ->  ${data.transfers.length} transfers`);
+  log(`        compression  ${Math.round(data.compression * 100)}%`);
+  log(`        minimal      ${data.optimal ? "yes, proven" : "no, greedy fallback"}`);
   log("");
-  for (const t of body.transfers) {
+  for (const t of data.transfers) {
     log(`        ${t.from.padEnd(9)} -> ${t.to.padEnd(9)} ${(t.cents / 100).toFixed(2).padStart(10)}`);
   }
-  if (body.proof?.inputHash) {
+  if (data.proof?.inputHash) {
     log("");
-    log(`        input hash   ${body.proof.inputHash}`);
-    log(`        ${body.proof.error ? `(not published: ${body.proof.error})` : "published to HCS — anyone can recompute it"}`);
+    log(`        input hash   ${data.proof.inputHash}`);
+    if (hcs) log(`        hcs message  ${hcs}`);
+    if (data.proof.error) log(`        (not published: ${data.proof.error})`);
   }
   rule();
 }

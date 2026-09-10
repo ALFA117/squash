@@ -5,7 +5,8 @@ import { publishProof } from "@/lib/hcs";
 import {
   buildRequirements,
   challenge,
-  decodePaymentHeader,
+  challengeHeader,
+  readPayment,
   isEnabled,
   payTo,
   settlePayment,
@@ -67,6 +68,8 @@ export async function POST(request: Request) {
   let receipt: string | undefined;
   let payer: string | undefined;
 
+  const resourceInfo = { url: new URL(request.url).toString(), method: "POST" };
+
   if (gated) {
     const requirements = await buildRequirements({
       tinybars: price.tinybars,
@@ -74,30 +77,41 @@ export async function POST(request: Request) {
       description: `Netting run over ${price.obligations} obligations`,
     });
 
-    const payment = decodePaymentHeader(request.headers.get("x-payment"));
+    const payment = await readPayment(request);
 
     if (!payment) {
-      return NextResponse.json(
-        challenge(requirements, "X-PAYMENT header is required"),
-        { status: 402 },
-      );
+      const body402 = await challenge(requirements, "Payment is required", resourceInfo);
+      return NextResponse.json(body402, {
+        status: 402,
+        headers: await challengeHeader(body402),
+      });
     }
 
     try {
       const verified = await verify(payment, requirements);
       if (!verified.isValid) {
-        return NextResponse.json(
-          challenge(requirements, verified.invalidReason ?? "Payment did not verify"),
-          { status: 402 },
+        const body402 = await challenge(
+          requirements,
+          verified.invalidReason ?? "Payment did not verify",
+          resourceInfo,
         );
+        return NextResponse.json(body402, {
+          status: 402,
+          headers: await challengeHeader(body402),
+        });
       }
 
       const settled = await settlePayment(payment, requirements);
       if (!settled.success) {
-        return NextResponse.json(
-          challenge(requirements, settled.errorReason ?? "Settlement failed"),
-          { status: 402 },
+        const body402 = await challenge(
+          requirements,
+          settled.errorReason ?? "Settlement failed",
+          resourceInfo,
         );
+        return NextResponse.json(body402, {
+          status: 402,
+          headers: await challengeHeader(body402),
+        });
       }
 
       paid = true;
