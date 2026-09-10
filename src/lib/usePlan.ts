@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import type { Transfer } from "./netting";
-import { VALLE_DE_BRAVO } from "./sample";
 
 export interface PlanResponse {
   balances: Record<string, number>;
@@ -13,6 +12,8 @@ export interface PlanResponse {
   price: { obligations: number; hbar: string; unitHbar: string };
   paid: boolean;
   gated: boolean;
+  cached?: boolean;
+  reason?: string;
   receipt?: string;
   proof?: { inputHash: string; topicId?: string; sequenceNumber?: string; error?: string };
 }
@@ -28,11 +29,9 @@ export function usePlan() {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/v1/net", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ expenses: VALLE_DE_BRAVO.expenses }),
-    })
+    // The app's own endpoint, which pays the engine on the server's behalf.
+    // The browser holds no key and never speaks x402 directly.
+    fetch("/api/plan")
       .then(async (r) => {
         if (!r.ok) throw new Error(`El motor respondió ${r.status}`);
         return (await r.json()) as PlanResponse;
