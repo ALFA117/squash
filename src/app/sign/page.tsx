@@ -1,40 +1,100 @@
 "use client";
 
 import Link from "next/link";
-import { PayingNotice } from "@/components/PayingNotice";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { formatCents } from "@/lib/netting";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { PayingNotice } from "@/components/PayingNotice";
+import { formatCents, type Transfer } from "@/lib/netting";
 import { personInitial, personName } from "@/lib/sample";
-import { usePlan } from "@/lib/usePlan";
 
 /**
  * Waiting for signatures.
  *
- * Only the parties whose money moves have to sign — the receivers do not.
- * That mirrors how the settlement is actually assembled: one scheduled
- * transaction that stays pending until every debited account has signed, and
- * then executes as a single unit. Nobody pays until everybody has.
+ * The whole plan is ONE scheduled transaction on Hedera: every debit and every
+ * credit in a single transfer list, sitting pending until each debited account
+ * has signed. The last signature makes it execute as a unit.
+ *
+ * So "nobody pays until everybody confirms" is not the app being polite. The
+ * transaction cannot go through until it is complete — and the screen below is
+ * watching real signatures land, not a timer.
+ *
+ * Only parties whose money moves have to sign. The receivers do not.
  */
 export default function SignScreen() {
   const router = useRouter();
-  const { plan, error } = usePlan();
+
+  const [scheduleId, setScheduleId] = useState<string | null>(null);
+  const [transfers, setTransfers] = useState<Transfer[] | null>(null);
   const [signed, setSigned] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const started = useRef(false);
+
+  const sign = useCallback(async (id: string, person: string) => {
+    const res = await fetch("/api/settle/sign", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ scheduleId: id, person }),
+    });
+    const data = (await res.json()) as { executed?: boolean; error?: string };
+    if (data.error) throw new Error(data.error);
+    setSigned((current) => [...current, person]);
+    return Boolean(data.executed);
+  }, []);
+
+  // Put the plan on chain, then let the other debtors sign. Each signature is
+  // a real transaction, so they land one at a time and the list fills in.
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/settle", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ nonce: Math.random().toString(36).slice(2, 12) }),
+        });
+        const data = (await res.json()) as {
+          scheduleId?: string;
+          transfers?: Transfer[];
+          error?: string;
+        };
+        if (data.error || !data.scheduleId || !data.transfers) {
+          throw new Error(data.error ?? "No se pudo crear la liquidación");
+        }
+
+        setScheduleId(data.scheduleId);
+        setTransfers(data.transfers);
+
+        for (const person of data.transfers.map((t) => t.from).filter((p) => p !== "tu")) {
+          await sign(data.scheduleId, person);
+        }
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    })();
+  }, [sign]);
 
   if (error) {
     return (
       <main className="phone">
         <div className="screen-head">
+          <Link href="/plan" className="back" aria-label="Volver al plan">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </Link>
           <h1 className="title">Esperando a todos</h1>
         </div>
-        <p style={{ padding: "0 22px", color: "var(--owed)", fontSize: 14 }}>
-          No se pudo cargar el plan: {error}
+        <p style={{ padding: "0 22px", color: "var(--owed)", fontSize: 14, lineHeight: 1.5 }}>
+          No se pudo preparar la liquidación: {error}
         </p>
       </main>
     );
   }
 
-  if (!plan) {
+  if (!transfers || !scheduleId) {
     return (
       <main className="phone">
         <div className="screen-head">
@@ -45,12 +105,10 @@ export default function SignScreen() {
     );
   }
 
-  // Everyone who is debited signs. Sample state: the other two are already in.
-  const payers = plan.transfers.map((t) => t.from);
-  const others = payers.filter((p) => p !== "tu");
-  const confirmed = [...others, ...signed];
-  const yours = plan.transfers.find((t) => t.from === "tu");
-  const receivers = [...new Set(plan.transfers.map((t) => t.to))];
+  const payers = transfers.map((t) => t.from);
+  const yours = transfers.find((t) => t.from === "tu");
+  const receivers = [...new Set(transfers.map((t) => t.to))];
+  const othersReady = payers.filter((p) => p !== "tu").every((p) => signed.includes(p));
 
   return (
     <main className="phone">
@@ -67,7 +125,7 @@ export default function SignScreen() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
             <span className="headline-count" style={{ fontSize: 40 }}>
-              {confirmed.length}
+              {signed.length}
             </span>
             <span style={{ fontFamily: "var(--f-display)", fontSize: 23, color: "var(--muted)" }}>
               de {payers.length} ya confirmaron
@@ -81,7 +139,8 @@ export default function SignScreen() {
                   height: 5,
                   flexGrow: 1,
                   borderRadius: 3,
-                  background: i < confirmed.length ? "var(--settled)" : "var(--rule)",
+                  background: i < signed.length ? "var(--settled)" : "var(--rule)",
+                  transition: "background 240ms ease",
                 }}
               />
             ))}
@@ -89,43 +148,46 @@ export default function SignScreen() {
         </div>
 
         <div className="card">
-          {/* Whoever is still missing goes last, so the screen reads as a
-              queue closing in on the one signature that is left. */}
-          {[...plan.transfers]
-            .sort((a, b) => Number(confirmed.includes(b.from)) - Number(confirmed.includes(a.from)))
+          {[...transfers]
+            .sort((a, b) => Number(signed.includes(b.from)) - Number(signed.includes(a.from)))
             .map((t) => {
-            const isYou = t.from === "tu";
-            const done = confirmed.includes(t.from);
-            return (
-              <div className="row" key={t.from} style={done || !isYou ? undefined : { background: "var(--surface-2)" }}>
-                <span className={isYou ? "avatar you" : "avatar"} style={{ width: 34, height: 34 }}>
-                  {personInitial(t.from)}
-                </span>
-                <span className="grow" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  <span style={{ fontSize: 14.5, fontWeight: isYou ? 600 : 500 }}>
-                    {personName(t.from)}
+              const isYou = t.from === "tu";
+              const done = signed.includes(t.from);
+              return (
+                <div
+                  className="row"
+                  key={t.from}
+                  style={!done && isYou ? { background: "var(--surface-2)" } : undefined}
+                >
+                  <span className={isYou ? "avatar you" : "avatar"} style={{ width: 34, height: 34 }}>
+                    {personInitial(t.from)}
                   </span>
-                  <span style={{ fontSize: 11.5, color: done ? "var(--settled)" : "var(--owed)" }}>
-                    {done ? "Confirmó" : "Falta su confirmación"} · {formatCents(t.cents)}
+                  <span className="grow" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    <span style={{ fontSize: 14.5, fontWeight: isYou ? 600 : 500 }}>
+                      {personName(t.from)}
+                    </span>
+                    <span style={{ fontSize: 11.5, color: done ? "var(--settled)" : "var(--muted)" }}>
+                      {done ? "Confirmó" : isYou ? "Falta tu confirmación" : "Firmando…"} ·{" "}
+                      {formatCents(t.cents)}
+                    </span>
                   </span>
-                </span>
-                {done ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--settled)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 12.5l5 5L20 6.5" />
-                  </svg>
-                ) : (
-                  <span
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: "50%",
-                      border: "1.6px dashed var(--owed)",
-                    }}
-                  />
-                )}
-              </div>
-            );
-          })}
+                  {done ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--settled)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 12.5l5 5L20 6.5" />
+                    </svg>
+                  ) : (
+                    <span
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: "50%",
+                        border: `1.6px dashed ${isYou ? "var(--owed)" : "var(--rule)"}`,
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 3px" }}>
@@ -151,8 +213,8 @@ export default function SignScreen() {
               Nadie paga hasta que los {payers.length} confirmen.
             </span>
             <span style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.45, textWrap: "pretty" }}>
-              Si alguien se arrepiente, no se mueve un solo peso. Las {plan.transfers.length}{" "}
-              transferencias salen juntas o no salen.
+              Las {transfers.length} transferencias son una sola transacción pendiente. No puede
+              ejecutarse a medias: sale completa o no sale.
             </span>
           </span>
         </div>
@@ -171,13 +233,19 @@ export default function SignScreen() {
         <button
           type="button"
           className="btn btn-settle"
-          onClick={() => {
-            setSigned(["tu"]);
-            setTimeout(() => router.push("/done"), 450);
+          disabled={!othersReady || busy || signed.includes("tu")}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await sign(scheduleId, "tu");
+              router.push(`/done?schedule=${encodeURIComponent(scheduleId)}`);
+            } catch (e) {
+              setError((e as Error).message);
+              setBusy(false);
+            }
           }}
-          disabled={signed.length > 0}
         >
-          {signed.length > 0 ? "Liquidando…" : "Confirmar mi parte"}
+          {busy ? "Liquidando…" : othersReady ? "Confirmar mi parte" : "Esperando a los demás…"}
         </button>
       </div>
     </main>

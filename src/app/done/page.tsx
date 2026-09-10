@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { formatCents } from "@/lib/netting";
 import { personName } from "@/lib/sample";
 import { usePlan } from "@/lib/usePlan";
@@ -8,12 +10,14 @@ import { usePlan } from "@/lib/usePlan";
 /**
  * Settled.
  *
- * The receipt link only renders when the engine actually returned one. A link
- * to an explorer that does not resolve is worse than no link at all, so when
- * the payment rail is off this screen says so instead of inventing a hash.
+ * The explorer link points at the scheduled transaction that actually
+ * executed, and only renders when there is one. A dead link to a real
+ * explorer is worse than no link, so with no settlement this screen says so
+ * rather than inventing a hash.
  */
-export default function DoneScreen() {
+function Done() {
   const { plan, error } = usePlan();
+  const scheduleId = useSearchParams().get("schedule");
 
   if (error || !plan) {
     return (
@@ -25,7 +29,7 @@ export default function DoneScreen() {
     );
   }
 
-  const explorerBase =
+  const explorer =
     process.env.NEXT_PUBLIC_HEDERA_NETWORK === "mainnet"
       ? "https://hashscan.io/mainnet"
       : "https://hashscan.io/testnet";
@@ -89,10 +93,10 @@ export default function DoneScreen() {
           Volver al grupo
         </Link>
 
-        {plan.receipt ? (
+        {scheduleId ? (
           <a
             className="receipt-link"
-            href={`${explorerBase}/transaction/${encodeURIComponent(plan.receipt)}`}
+            href={`${explorer}/schedule/${encodeURIComponent(scheduleId)}`}
             target="_blank"
             rel="noreferrer"
           >
@@ -103,11 +107,18 @@ export default function DoneScreen() {
           </a>
         ) : (
           <span style={{ fontSize: 11.5, color: "#a9d3bf", textAlign: "center", maxWidth: 280, lineHeight: 1.45 }}>
-            Corrida de demostración — el comprobante aparece aquí cuando el motor corre con la
-            cuenta de Hedera conectada.
+            Esta vista no vino de una liquidación — entra por el plan para mover dinero de verdad.
           </span>
         )}
       </div>
     </main>
+  );
+}
+
+export default function DoneScreen() {
+  return (
+    <Suspense fallback={<main className="phone done" />}>
+      <Done />
+    </Suspense>
   );
 }

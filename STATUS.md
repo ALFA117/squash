@@ -38,26 +38,37 @@ the faucet funds it for free, so the build has cost nothing.
 
 ---
 
-## Written but never executed
+## Settlement is real now
 
-**`src/lib/scheduled.ts` is dead code.** Nothing imports it. `/sign` simulates
-the whole thing: it holds a `useState`, waits 450 ms and navigates to `/done`.
-No scheduled transaction is ever created.
+`/sign` puts the whole plan on chain as ONE scheduled transaction — every
+debit and every credit in a single transfer list — and it sits pending until
+each debited account has signed. Watched live: Diego signs, still pending;
+Luis signs, still pending; you sign, and it **executes**.
 
-This matters more than a missing feature. It is **the one place where the pitch
-claims something the code does not do** — "nobody pays until everybody
-confirms, it is a property of the transaction, not a promise of the app" is,
-today, exactly a promise of the app.
+Verified against the mirror node, twice, to the tinybar:
 
-Two ways out, and one has to be picked:
+```
+tu       -204,000      rosa     +204,000
+diego    -111,000      mariana  +111,000
+luis      -57,000      ana       +57,000
+```
 
-- **Build it** (~3–4 h): create the scheduled transfer, have each debited party
-  sign it, let the last signature trigger execution. Needs one testnet account
-  per signer, which `scripts/create-agent.mjs` can mint.
-- **Soften the copy** so nothing is claimed that is not done.
+The debtors paid their amount and nothing else — the operator covered the
+network fees, so nobody needed gas to settle.
 
-Building it is the better answer — it is the strongest argument in the deck and
-the reason to be on Hedera rather than anywhere else.
+"Nobody pays until everybody confirms" is no longer a promise the app makes.
+The transaction cannot go through until it is complete.
+
+Two things that bite and are now handled: the same plan produces a
+byte-identical transaction every time, and Hedera refuses to create one that
+duplicates a schedule it still remembers — including one that already
+executed — so each attempt carries its own nonce in the memo; and repeating
+the same nonce stays idempotent, which is what makes a reload mid-signing
+harmless.
+
+**Still a demo in one respect:** the six people are throwaway testnet accounts
+whose keys the app holds (`scripts/create-demo-accounts.mjs`). That is exactly
+what Privy replaces — real per-user wallets the app never sees.
 
 ---
 

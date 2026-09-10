@@ -13,9 +13,8 @@ import type { Transfer } from "./netting";
  * "nobody pays until everybody has confirmed" is not a promise the app makes,
  * it is a property of the transaction.
  *
- * NOT YET EXERCISED AGAINST THE NETWORK. The shapes follow the Hedera SDK, but
- * no scheduled transaction has been created with real credentials — that needs
- * a funded testnet account per signer. Treat this as wired, not proven.
+ * Driven by /api/settle and /api/settle/sign, against one funded testnet
+ * account per person (scripts/create-demo-accounts.mjs).
  */
 
 export interface ScheduleHandles {
@@ -55,6 +54,14 @@ export async function scheduleSettlement(
   transfers: Transfer[],
   accounts: AccountMap,
   rate: (cents: number) => number,
+  /**
+   * Identifies this settlement attempt. The same plan produces a byte-identical
+   * transaction every time, and Hedera refuses to create one that duplicates a
+   * schedule it still remembers — including ones that already executed. The
+   * nonce rides in the memo so each attempt is its own transaction, while
+   * repeating the SAME nonce stays idempotent.
+   */
+  nonce: string,
 ): Promise<ScheduleHandles> {
   if (!configured()) {
     throw new Error("HEDERA_OPERATOR_ID and HEDERA_OPERATOR_KEY are required");
@@ -81,32 +88,51 @@ export async function scheduleSettlement(
     inner.addHbarTransfer(AccountId.fromString(accounts[t.to]), Hbar.fromTinybars(tinybars));
   }
 
+  const awaiting = [...new Set(transfers.map((t) => t.from))];
   const c = await client();
+
   try {
     const receipt = await new ScheduleCreateTransaction()
       .setScheduledTransaction(inner)
-      .setScheduleMemo(`Squash settlement — ${transfers.length} transfers`)
+      .setScheduleMemo(`Squash settlement · ${transfers.length} transfers · ${nonce}`)
       .execute(c)
       .then((tx) => tx.getReceipt(c));
 
-    return {
-      scheduleId: receipt.scheduleId!.toString(),
-      awaiting: [...new Set(transfers.map((t) => t.from))],
-    };
+    return { scheduleId: receipt.scheduleId!.toString(), awaiting };
+  } catch (e) {
+    // Hedera refuses to create a second schedule identical to a live one, and
+    // hands back the id of the one that already exists. Settling the same plan
+    // twice should be idempotent, so take that as the answer rather than an
+    // error — otherwise a reload mid-signing looks like a failure.
+    const existing = (e as { transactionReceipt?: { scheduleId?: { toString(): string } } })
+      ?.transactionReceipt?.scheduleId;
+    if (existing) {
+      return { scheduleId: existing.toString(), awaiting };
+    }
+    throw e;
   } finally {
     c.close();
   }
 }
 
-/** One party adds their signature. The last one triggers execution. */
-export async function signSchedule(scheduleId: string, signerKeyDer: string): Promise<void> {
+/**
+ * One party adds their signature. The last one triggers execution.
+ *
+ * The operator pays the fee for submitting the signature; the signature added
+ * is the signer's own. Nothing about who owes what is decided here.
+ */
+export async function signSchedule(
+  scheduleId: string,
+  signerKey: string,
+  keyType?: string,
+): Promise<void> {
   const { ScheduleSignTransaction } = await import("@hashgraph/sdk");
   const c = await client();
   try {
     await new ScheduleSignTransaction()
       .setScheduleId(scheduleId)
       .freezeWith(c)
-      .sign(await parseOperatorKey(signerKeyDer))
+      .sign(await parseOperatorKey(signerKey, keyType))
       .then((tx) => tx.execute(c))
       .then((tx) => tx.getReceipt(c));
   } finally {
