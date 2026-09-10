@@ -16,7 +16,9 @@ x402 on Hedera. No API key, no subscription, no seat.
 
 **Live:** <https://squash-pay.vercel.app> — `/` is the group, `/plan` is the settlement.
 
-**Where the project actually stands, including what is not done: [STATUS.md](STATUS.md).**
+**Picking this up?** [CONTRIBUTING.md](CONTRIBUTING.md) gets you running in a
+minute with no credentials. [STATUS.md](STATUS.md) is the honest ledger of what
+works, what is written but never executed, and what has not been started.
 
 ---
 
@@ -148,24 +150,15 @@ hand-rolled one with a bare 500 and no diagnostic.
 
 ```bash
 npm install
-npm test        # 15 tests, no network needed
+npm test        # 15 tests, no network, no credentials
 npm run dev
 ```
 
-Then open `/` for the group and `/plan` for the settlement.
-
-### Configuration
-
-Copy `.env.local.example` to `.env.local` and fill it in. **`.env.local` is
-gitignored — never commit it, and never use a key from a wallet holding real
-funds.** Create a fresh testnet account instead:
-
-- <https://portal.hedera.com/> gives 1,000 test HBAR every 24 h
-- the anonymous faucet gives 100 every 24 h, no account at all
-
-Neither asks for a card or personal data. Everything in this project runs on
-Hedera **testnet**, which is what the prize rules allow and what keeps the build
-cost at zero.
+No configuration is needed — with no `.env.local` the engine answers for free
+and every screen works. Credentials are only for exercising the paid path, and
+[CONTRIBUTING.md](CONTRIBUTING.md) walks through getting your own in about five
+minutes. Everything runs on Hedera **testnet**, which is what the prize rules
+allow and what keeps the build cost at zero.
 
 ---
 
