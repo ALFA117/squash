@@ -1,0 +1,203 @@
+:root {
+  --bg: #edefec;
+  --surface: #f8f9f6;
+  --surface-2: #e3e7e0;
+  --ink: #171b17;
+  --muted: #5b655c;
+  --rule: #cfd5cc;
+  --settled: #0b6b4f;
+  --owed: #8e3b2e;
+  --rail: #7a5f10;
+
+  --f-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--f-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The app is a phone. On a wide screen, centre it and let the rest breathe. */
+.phone {
+  width: 390px;
+  min-height: 844px;
+  margin: 0 auto;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+@media (min-width: 430px) {
+  body {
+    padding: 24px 0;
+  }
+  .phone {
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+}
+
+.screen-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 26px 22px 12px;
+}
+
+.back {
+  width: 44px;
+  height: 44px;
+  margin-left: -12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.title {
+  font-family: var(--f-display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.label {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.avatar.you {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+.avatar.sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.money {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14.5px;
+}
+
+.grow {
+  flex-grow: 1;
+}
+
+.btn {
+  width: 100%;
+  height: 54px;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--f-body);
+  font-size: 15.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-settle {
+  background: var(--settled);
+  color: var(--surface);
+}
+
+.btn-dark {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.foot {
+  padding: 14px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--rule);
+  margin-top: auto;
+}
+
+.receipt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border-left: 2px solid var(--rail);
+  background: var(--surface);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--rail);
+}
+
+.headline-count {
+  font-family: var(--f-mono);
+  font-size: 42px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}

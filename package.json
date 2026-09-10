@@ -1,0 +1,26 @@
+{
+  "name": "squash",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multilateral netting engine — git squash, but for money.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@hashgraph/sdk": "^2.81.0",
+    "next": "16.3.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.8"
+  }
+}
