@@ -16,6 +16,8 @@ x402 on Hedera. No API key, no subscription, no seat.
 
 **Live:** <https://squash-pay.vercel.app> — `/` is the group, `/plan` is the settlement.
 
+**Where the project actually stands, including what is not done: [STATUS.md](STATUS.md).**
+
 ---
 
 ## Status
@@ -28,7 +30,7 @@ x402 on Hedera. No API key, no subscription, no seat.
 | x402 gate, Hedera `exact` scheme | **done** |
 | Agent completing a real paid request | **done — settled on testnet** |
 | HCS proof-of-run audit trail | **done — published on testnet** |
-| Scheduled Transaction atomic settlement | wired, not yet exercised |
+| Scheduled Transaction atomic settlement | **written but never executed** — see STATUS.md |
 | Privy embedded wallets | next |
 | World Selfie Check on group join | next |
 
