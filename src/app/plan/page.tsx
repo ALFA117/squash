@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion, useReducedMotion } from "motion/react";
 import { DebtGraph } from "@/components/DebtGraph";
 import { PayingNotice } from "@/components/PayingNotice";
 import { formatCents } from "@/lib/netting";
@@ -9,6 +10,10 @@ import { usePlan } from "@/lib/usePlan";
 
 export default function PlanScreen() {
   const { plan, error } = usePlan();
+  const reducedMotion = useReducedMotion();
+  const entrance = reducedMotion
+    ? { duration: 0 }
+    : { duration: 0.36, ease: [0.16, 1, 0.3, 1] as const };
 
   const nodes = GROUP.people.map((p) => ({
     id: p.id,
@@ -28,7 +33,7 @@ export default function PlanScreen() {
       </div>
 
       {error && (
-        <p style={{ padding: "0 22px", color: "var(--owed)", fontSize: 14 }}>
+        <p role="alert" style={{ padding: "0 22px", color: "var(--owed)", fontSize: 14 }}>
           No se pudo calcular el plan: {error}
         </p>
       )}
@@ -37,7 +42,12 @@ export default function PlanScreen() {
 
       {plan && (
         <>
-          <section style={{ padding: "0 22px", display: "flex", flexDirection: "column", gap: 4 }}>
+          <motion.section
+            initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={entrance}
+            style={{ padding: "0 22px", display: "flex", flexDirection: "column", gap: 4 }}
+          >
             <div style={{ display: "flex", alignItems: "baseline", gap: 13 }}>
               <span className="headline-count" style={{ color: "var(--owed)" }}>
                 {plan.grossEdges.length}
@@ -55,17 +65,38 @@ export default function PlanScreen() {
                 {Math.round(plan.compression * 100)}% menos comisiones
               </strong>
             </span>
-          </section>
+          </motion.section>
 
-          <section style={{ padding: "4px 22px 0" }}>
+          <motion.section
+            initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={reducedMotion ? entrance : { ...entrance, delay: 0.08 }}
+            style={{ padding: "4px 22px 0" }}
+          >
             <DebtGraph nodes={nodes} grossEdges={plan.grossEdges} transfers={plan.transfers} />
-          </section>
+          </motion.section>
 
-          <section style={{ padding: "4px 22px 0", display: "flex", flexDirection: "column", gap: 7 }}>
+          <motion.section
+            initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={reducedMotion ? entrance : { ...entrance, delay: 0.16 }}
+            style={{ padding: "4px 22px 0", display: "flex", flexDirection: "column", gap: 7 }}
+          >
             <span className="label">LO QUE SE MUEVE</span>
             <div className="card">
-              {plan.transfers.map((t) => (
-                <div className="row" key={`${t.from}-${t.to}`} style={{ gap: 10 }}>
+              {plan.transfers.map((t, index) => (
+                <motion.div
+                  className="row"
+                  key={`${t.from}-${t.to}`}
+                  initial={reducedMotion ? false : { opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={
+                    reducedMotion
+                      ? { duration: 0 }
+                      : { duration: 0.24, delay: 0.22 + index * 0.05, ease: [0.16, 1, 0.3, 1] }
+                  }
+                  style={{ gap: 10 }}
+                >
                   <div className={t.from === "tu" ? "avatar sm you" : "avatar sm"}>
                     {personInitial(t.from)}
                   </div>
@@ -79,12 +110,22 @@ export default function PlanScreen() {
                   <span className="money" style={{ fontSize: 15, fontWeight: 500 }}>
                     {formatCents(t.cents)}
                   </span>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </section>
+          </motion.section>
 
-          <div className="foot" style={{ gap: 10, border: "none" }}>
+          <motion.div
+            className="foot"
+            initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={
+              reducedMotion
+                ? { duration: 0 }
+                : { duration: 0.3, delay: 0.3, ease: [0.16, 1, 0.3, 1] }
+            }
+            style={{ gap: 10, border: "none" }}
+          >
             <div className="receipt">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 12.5l5 5L20 6.5" />
@@ -98,7 +139,7 @@ export default function PlanScreen() {
             <Link className="btn btn-settle" href="/sign">
               Confirmar y firmar
             </Link>
-          </div>
+          </motion.div>
         </>
       )}
     </main>

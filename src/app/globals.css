@@ -12,6 +12,11 @@
   --f-display: "Newsreader", Georgia, "Times New Roman", serif;
   --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  /* A small, shared motion language: quick feedback, calm arrivals. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-press: 120ms;
+  --duration-ui: 180ms;
 }
 
 * {
@@ -29,12 +34,13 @@ body {
   color: var(--ink);
   font-family: var(--f-body);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* The app is a phone. On a wide screen, centre it and let the rest breathe. */
 .phone {
-  width: 390px;
-  min-height: 844px;
+  width: min(390px, 100%);
+  min-height: 100dvh;
   margin: 0 auto;
   background: var(--bg);
   display: flex;
@@ -161,6 +167,7 @@ body {
   justify-content: center;
   text-decoration: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-settle {
@@ -192,6 +199,7 @@ body {
   font-family: var(--f-mono);
   font-size: 11px;
   color: var(--rail);
+  overflow-wrap: anywhere;
 }
 
 .headline-count {
@@ -562,6 +570,7 @@ input:focus-visible {
   border-left: 2px solid var(--rail);
   padding: 7px 0 7px 13px;
   background: var(--surface);
+  overflow-wrap: anywhere;
 }
 
 .lp-proof a:hover {
@@ -638,11 +647,11 @@ input:focus-visible {
 .chip {
   cursor: pointer;
   transition:
-    background-color 180ms ease-out,
-    border-color 180ms ease-out,
-    color 180ms ease-out,
-    opacity 180ms ease-out,
-    transform 120ms ease-out;
+    background-color var(--duration-ui) ease-out,
+    border-color var(--duration-ui) ease-out,
+    color var(--duration-ui) ease-out,
+    opacity var(--duration-ui) ease-out,
+    transform var(--duration-press) ease-out;
 }
 
 .btn:active:not(:disabled),
@@ -660,7 +669,7 @@ input:focus-visible {
 .receipt-link,
 .lp-link,
 a[class*="avatar"] {
-  transition: opacity 180ms ease-out;
+  transition: opacity var(--duration-ui) ease-out;
 }
 
 .back:hover,
@@ -675,8 +684,8 @@ a[class*="avatar"] {
 
 .lp-proof a {
   transition:
-    color 180ms ease-out,
-    border-color 180ms ease-out;
+    color var(--duration-ui) ease-out,
+    border-color var(--duration-ui) ease-out;
 }
 
 /* The row still waiting on a signature. Breathing, not blinking. */

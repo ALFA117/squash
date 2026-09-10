@@ -8,6 +8,8 @@
 export function PayingNotice() {
   return (
     <div
+      role="status"
+      aria-live="polite"
       style={{
         padding: "0 22px",
         display: "flex",
