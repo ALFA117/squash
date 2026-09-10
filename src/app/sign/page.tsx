@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { PayingNotice } from "@/components/PayingNotice";
 import { formatCents, type Transfer } from "@/lib/netting";
 import { personInitial, personName } from "@/lib/sample";
@@ -147,6 +148,7 @@ export default function SignScreen() {
           </div>
         </div>
 
+        <LayoutGroup>
         <div className="card">
           {[...transfers]
             .sort((a, b) => Number(signed.includes(b.from)) - Number(signed.includes(a.from)))
@@ -154,8 +156,10 @@ export default function SignScreen() {
               const isYou = t.from === "tu";
               const done = signed.includes(t.from);
               return (
-                <div
-                  className="row"
+                <motion.div
+                  layout
+                  transition={{ type: "spring", stiffness: 300, damping: 28 }}
+                  className={!done && isYou ? "row awaiting" : "row"}
                   key={t.from}
                   style={!done && isYou ? { background: "var(--surface-2)" } : undefined}
                 >
@@ -171,24 +175,41 @@ export default function SignScreen() {
                       {formatCents(t.cents)}
                     </span>
                   </span>
-                  {done ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--settled)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 12.5l5 5L20 6.5" />
-                    </svg>
-                  ) : (
-                    <span
-                      style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: "50%",
-                        border: `1.6px dashed ${isYou ? "var(--owed)" : "var(--rule)"}`,
-                      }}
-                    />
-                  )}
-                </div>
+                  <AnimatePresence mode="wait" initial={false}>
+                    {done ? (
+                      <motion.svg
+                        key="done"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="var(--settled)"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        initial={{ scale: 0.5 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 420, damping: 18 }}
+                      >
+                        <path d="M4 12.5l5 5L20 6.5" />
+                      </motion.svg>
+                    ) : (
+                      <span
+                        key="pending"
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: "50%",
+                          border: `1.6px dashed ${isYou ? "var(--owed)" : "var(--rule)"}`,
+                        }}
+                      />
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               );
             })}
         </div>
+        </LayoutGroup>
 
         <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 3px" }}>
           <span style={{ display: "flex", gap: 5 }}>

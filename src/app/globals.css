@@ -626,3 +626,129 @@ input:focus-visible {
 .lp-foot a {
   color: var(--settled);
 }
+
+/* ── interaction states ──────────────────────────────────────────────────
+   Every tappable thing answers within 150ms, and the answer never moves
+   anything around it: opacity and transform only, no layout reflow. */
+
+.btn,
+.person-chip,
+.split-row,
+.lp-btn,
+.chip {
+  cursor: pointer;
+  transition:
+    background-color 180ms ease-out,
+    border-color 180ms ease-out,
+    color 180ms ease-out,
+    opacity 180ms ease-out,
+    transform 120ms ease-out;
+}
+
+.btn:active:not(:disabled),
+.person-chip:active,
+.split-row:active,
+.lp-btn:active {
+  transform: scale(0.985);
+}
+
+.btn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.back,
+.receipt-link,
+.lp-link,
+a[class*="avatar"] {
+  transition: opacity 180ms ease-out;
+}
+
+.back:hover,
+.receipt-link:hover,
+.lp-link:hover {
+  opacity: 0.7;
+}
+
+.split-row:hover {
+  background: var(--surface-2);
+}
+
+.lp-proof a {
+  transition:
+    color 180ms ease-out,
+    border-color 180ms ease-out;
+}
+
+/* The row still waiting on a signature. Breathing, not blinking. */
+.awaiting {
+  animation: awaiting 2s ease-in-out infinite;
+}
+
+@keyframes awaiting {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .btn:active:not(:disabled),
+  .person-chip:active,
+  .split-row:active,
+  .lp-btn:active {
+    transform: none;
+  }
+}
+
+/* ── reveals ─────────────────────────────────────────────────────────────
+   Every rule here animates FROM something TO the element's resting state.
+   Remove the animation and the finished thing is still on screen — that is
+   the point. Nothing is parked invisible waiting on a frame. */
+
+.dg-edge {
+  opacity: 0.3;
+  animation: dg-fade 300ms ease-out backwards;
+}
+
+@keyframes dg-fade {
+  from { opacity: 0; }
+}
+
+.dg-draw {
+  stroke-dashoffset: 0;
+  animation: dg-draw 550ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes dg-draw {
+  from { stroke-dashoffset: var(--dg-len); }
+}
+
+.dg-node {
+  animation: dg-pop 320ms cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+}
+
+@keyframes dg-pop {
+  from { opacity: 0; transform: scale(0.6); }
+}
+
+.reveal {
+  animation: reveal 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-timeline: view();
+  animation-range: entry 0% entry 60%;
+}
+
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(16px); }
+}
+
+/* Browsers without scroll-driven animations run it once on load instead,
+   which is a perfectly good second choice — the content is never hidden. */
+@supports not (animation-timeline: view()) {
+  .reveal { animation-timeline: auto; }
+}

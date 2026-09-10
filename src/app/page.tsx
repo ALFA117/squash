@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Reveal } from "@/components/Reveal";
 import { netExpenses } from "@/lib/netting";
 import { VALLE_DE_BRAVO } from "@/lib/sample";
 
@@ -48,7 +49,8 @@ export default function Landing() {
         </div>
       </header>
 
-      <section className="lp-numbers" aria-label="El resultado">
+      <Reveal>
+<section className="lp-numbers" aria-label="El resultado">
         <div>
           <span className="lp-n" style={{ color: "var(--owed)" }}>
             {grossEdges.length}
@@ -65,8 +67,10 @@ export default function Landing() {
           <span className="lp-cap">transferencias · {Math.round(compression * 100)}% menos comisiones</span>
         </div>
       </section>
+</Reveal>
 
-      <section className="lp-section">
+      <Reveal>
+<section className="lp-section">
         <h2>Cómo funciona</h2>
         <ol className="lp-steps">
           <li>
@@ -84,8 +88,10 @@ export default function Landing() {
           </li>
         </ol>
       </section>
+</Reveal>
 
-      <section className="lp-section">
+      <Reveal>
+<section className="lp-section">
         <h2>Por qué es el mínimo, no solo poquito</h2>
         <p>
           Todo plan de liquidación se descompone en grupos que suman cero, y un grupo de{" "}
@@ -98,8 +104,10 @@ export default function Landing() {
           repo con un caso donde encadena tres transferencias y bastaban dos.
         </p>
       </section>
+</Reveal>
 
-      <section className="lp-section">
+      <Reveal>
+<section className="lp-section">
         <h2>El motor se cobra solo</h2>
         <p>
           Calcular el plan no es gratis, así que el motor <strong>cobra por obligación</strong> —
@@ -131,8 +139,10 @@ export default function Landing() {
           rehacer la cuenta y comprobar que no hicimos trampa.
         </p>
       </section>
+</Reveal>
 
-      <section className="lp-section lp-faucet">
+      <Reveal>
+<section className="lp-section lp-faucet">
         <h2>¿Quieres probarlo con tu bola?</h2>
         <p>
           Todo esto corre en la <strong>red de pruebas de Hedera</strong>. El dinero que se mueve
@@ -162,19 +172,22 @@ export default function Landing() {
           esto.
         </p>
       </section>
+</Reveal>
 
-      <footer className="lp-foot">
+      <Reveal>
+<footer className="lp-foot">
         <p>
-          <strong>Qué es real y qué no, hoy.</strong> El cálculo del plan es real y el cobro por
-          usarlo también: esa transferencia de arriba ocurrió. La liquidación entre las personas
-          del grupo todavía está en la demo — la pieza que la vuelve real, una sola transacción
-          que no se ejecuta hasta que todos firmaron, está escrita y sin conectar.{" "}
+          <strong>Qué es real y qué no, hoy.</strong> El cálculo, el cobro por usarlo y la
+          liquidación entre las seis personas ocurren de verdad — todo eso se puede abrir en el
+          explorador. Lo que sigue siendo demo es que las seis cuentas son desechables y la app
+          tiene sus llaves; un producto le da a cada quien su propia cartera.{" "}
           <a href="https://github.com/ALFA117/squash/blob/main/STATUS.md" target="_blank" rel="noreferrer">
             Lo llevamos anotado ↗
           </a>
         </p>
         <p className="lp-muted">Squash · ETHOnline 2026 · Hedera testnet</p>
       </footer>
+</Reveal>
     </main>
   );
 }

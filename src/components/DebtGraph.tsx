@@ -24,10 +24,24 @@ const CY = 118;
 const R = 88;
 const NODE_R = 20;
 
+/** The tangle settles in first; the transfers cut through it afterwards. */
+const TANGLE_MS = 500;
+const DRAW_MS = 550;
+
 /**
  * One picture of the compression: the faint web is what everyone owed each
  * other, the bold arrows are what is left. Positions are computed from the
  * party count, so the drawing follows the data instead of a fixed hexagon.
+ *
+ * The reveal is CSS, deliberately, and every element's RESTING state is the
+ * finished drawing — the animation only supplies a starting point to travel
+ * from. A graph parked at opacity 0 waiting on a JS frame is an invisible
+ * graph the moment anything goes wrong: a throttled tab, a failed hydration,
+ * a device that never gets around to painting. This is the one image the
+ * whole product is explained by; it does not get to depend on that.
+ *
+ * `prefers-reduced-motion` is honoured globally in globals.css, which
+ * collapses these to their end state rather than removing them.
  */
 export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
   const n = nodes.length;
@@ -54,6 +68,7 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
       y1: a.y + uy * startPad,
       x2: b.x - ux * endPad,
       y2: b.y - uy * endPad,
+      length: Math.max(len - startPad - endPad, 1),
     };
   };
 
@@ -78,27 +93,60 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
         </marker>
       </defs>
 
-      <g stroke="var(--owed)" strokeWidth="1.1" opacity="0.3">
-        {grossEdges.map((e) => {
+      <g stroke="var(--owed)" strokeWidth="1.1">
+        {grossEdges.map((e, i) => {
           const a = at.get(e.from);
           const b = at.get(e.to);
           if (!a || !b) return null;
-          return <line key={`g-${e.from}-${e.to}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+          return (
+            <line
+              key={`g-${e.from}-${e.to}`}
+              className="dg-edge"
+              x1={a.x}
+              y1={a.y}
+              x2={b.x}
+              y2={b.y}
+              style={{ animationDelay: `${(i / grossEdges.length) * TANGLE_MS}ms` }}
+            />
+          );
         })}
       </g>
 
       <g stroke="var(--settled)" strokeWidth="2.4" fill="none" markerEnd="url(#squash-tip)">
-        {transfers.map((t) => {
+        {transfers.map((t, i) => {
           if (!at.has(t.from) || !at.has(t.to)) return null;
-          const { x1, y1, x2, y2 } = trim(t.from, t.to, NODE_R, NODE_R + 4);
-          return <line key={`t-${t.from}-${t.to}`} x1={x1} y1={y1} x2={x2} y2={y2} />;
+          const { x1, y1, x2, y2, length } = trim(t.from, t.to, NODE_R, NODE_R + 4);
+          return (
+            <line
+              key={`t-${t.from}-${t.to}`}
+              className="dg-draw"
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              style={
+                {
+                  strokeDasharray: length,
+                  "--dg-len": `${length}`,
+                  animationDelay: `${TANGLE_MS + 150 + i * 120}ms`,
+                } as React.CSSProperties
+              }
+            />
+          );
         })}
       </g>
 
-      {nodes.map((node) => {
+      {nodes.map((node, i) => {
         const p = at.get(node.id)!;
         return (
-          <g key={node.id}>
+          <g
+            key={node.id}
+            className="dg-node"
+            style={{
+              transformOrigin: `${p.x}px ${p.y}px`,
+              animationDelay: `${i * 45}ms`,
+            }}
+          >
             <circle
               cx={p.x}
               cy={p.y}
