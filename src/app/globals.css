@@ -201,3 +201,163 @@ body {
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
 }
+
+/* --- join --------------------------------------------------------------- */
+
+.selfie-frame {
+  position: relative;
+  width: 194px;
+  height: 194px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* --- expense form ------------------------------------------------------- */
+
+.amount-input {
+  font-family: var(--f-mono);
+  font-size: 44px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  width: 210px;
+  padding: 0;
+  outline-offset: 4px;
+}
+
+.text-input {
+  height: 50px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0 15px;
+  font-family: var(--f-body);
+  font-size: 15.5px;
+  color: var(--ink);
+  width: 100%;
+}
+
+.chip {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+}
+
+.chip-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+.person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 15px 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--f-body);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.person-chip.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+  font-weight: 500;
+}
+
+.split-row {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--f-body);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.split-row:last-child {
+  border-bottom: none;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* --- sign --------------------------------------------------------------- */
+
+.note-card {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 15px 16px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+/* --- done --------------------------------------------------------------- */
+
+.phone.done {
+  background: var(--settled);
+  color: #f1f5f1;
+}
+
+.done-list {
+  width: 100%;
+  border-top: 1px solid #47997a;
+  border-bottom: 1px solid #47997a;
+  display: flex;
+  flex-direction: column;
+}
+
+.done-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+  border-bottom: 1px solid #47997a;
+}
+
+.done-row:last-child {
+  border-bottom: none;
+}
+
+.receipt-link {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #d3e8dc;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Keyboard focus must stay visible on every control. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--settled);
+  outline-offset: 2px;
+}

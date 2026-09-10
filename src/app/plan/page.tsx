@@ -133,9 +133,9 @@ export default function PlanScreen() {
               </span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{plan.price.hbar} ℏ</span>
             </div>
-            <button className="btn btn-settle" type="button">
+            <Link className="btn btn-settle" href="/sign">
               Confirmar y firmar
-            </button>
+            </Link>
           </div>
         </>
       )}

@@ -22,6 +22,25 @@ export default function GroupScreen() {
             {VALLE_DE_BRAVO.people.length} personas · {VALLE_DE_BRAVO.expenses.length} gastos
           </span>
         </div>
+        <Link
+          href="/expense"
+          aria-label="Agregar gasto"
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 10,
+            background: "var(--surface-2)",
+            border: "1px solid var(--rule)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--ink)",
+          }}
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </Link>
       </div>
 
       <section
