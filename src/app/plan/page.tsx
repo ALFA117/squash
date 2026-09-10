@@ -19,7 +19,7 @@ export default function PlanScreen() {
   return (
     <main className="phone">
       <div className="screen-head">
-        <Link href="/" className="back" aria-label="Volver al grupo">
+        <Link href="/grupo" className="back" aria-label="Volver al grupo">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 5l-7 7 7 7" />
           </svg>

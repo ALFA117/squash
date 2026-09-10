@@ -40,7 +40,7 @@ export default function ExpenseScreen() {
     <main className="phone">
       <div className="screen-head" style={{ justifyContent: "space-between" }}>
         <h1 className="title">Nuevo gasto</h1>
-        <Link href="/" className="back" style={{ marginLeft: 0, marginRight: -10 }} aria-label="Cancelar">
+        <Link href="/grupo" className="back" style={{ marginLeft: 0, marginRight: -10 }} aria-label="Cancelar">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.6" strokeLinecap="round">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
@@ -135,7 +135,7 @@ export default function ExpenseScreen() {
           type="button"
           className="btn btn-dark"
           disabled={cents <= 0 || among.length === 0}
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/grupo")}
         >
           Guardar gasto
         </button>

@@ -85,7 +85,7 @@ export default function DoneScreen() {
       </div>
 
       <div style={{ padding: "0 26px 22px", display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
-        <Link href="/" className="btn" style={{ background: "#f1f5f1", color: "var(--settled)", fontWeight: 600 }}>
+        <Link href="/grupo" className="btn" style={{ background: "#f1f5f1", color: "var(--settled)", fontWeight: 600 }}>
           Volver al grupo
         </Link>
 

@@ -104,7 +104,7 @@ export default function JoinScreen() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-        <Link href="/" className="btn btn-dark">
+        <Link href="/grupo" className="btn btn-dark">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 9 }}>
             <path d="M3 8.5h3.2l1.6-2.4h8.4l1.6 2.4H21v10H3z" />
             <circle cx="12" cy="13" r="3.4" />
