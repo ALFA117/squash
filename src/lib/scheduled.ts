@@ -1,3 +1,4 @@
+import { parseOperatorKey } from "./hederaKey";
 import type { Transfer } from "./netting";
 
 /**
@@ -34,11 +35,11 @@ function configured(): boolean {
 }
 
 async function client() {
-  const { Client, PrivateKey } = await import("@hashgraph/sdk");
+  const { Client } = await import("@hashgraph/sdk");
   const c = process.env.HEDERA_NETWORK === "mainnet" ? Client.forMainnet() : Client.forTestnet();
   c.setOperator(
     process.env.HEDERA_OPERATOR_ID!,
-    PrivateKey.fromStringDer(process.env.HEDERA_OPERATOR_KEY!),
+    await parseOperatorKey(process.env.HEDERA_OPERATOR_KEY),
   );
   return c;
 }
@@ -99,13 +100,13 @@ export async function scheduleSettlement(
 
 /** One party adds their signature. The last one triggers execution. */
 export async function signSchedule(scheduleId: string, signerKeyDer: string): Promise<void> {
-  const { PrivateKey, ScheduleSignTransaction } = await import("@hashgraph/sdk");
+  const { ScheduleSignTransaction } = await import("@hashgraph/sdk");
   const c = await client();
   try {
     await new ScheduleSignTransaction()
       .setScheduleId(scheduleId)
       .freezeWith(c)
-      .sign(PrivateKey.fromStringDer(signerKeyDer))
+      .sign(await parseOperatorKey(signerKeyDer))
       .then((tx) => tx.execute(c))
       .then((tx) => tx.getReceipt(c));
   } finally {

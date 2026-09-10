@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseOperatorKey } from "./hederaKey";
 import type { NetResult, Obligation } from "./netting";
 
 /**
@@ -61,13 +62,13 @@ export async function publishProof(
   }
 
   try {
-    const { Client, PrivateKey, TopicMessageSubmitTransaction } = await import("@hashgraph/sdk");
+    const { Client, TopicMessageSubmitTransaction } = await import("@hashgraph/sdk");
 
     const client =
       process.env.HEDERA_NETWORK === "mainnet" ? Client.forMainnet() : Client.forTestnet();
     client.setOperator(
       process.env.HEDERA_OPERATOR_ID!,
-      PrivateKey.fromStringDer(process.env.HEDERA_OPERATOR_KEY!),
+      await parseOperatorKey(process.env.HEDERA_OPERATOR_KEY),
     );
 
     const receipt = await new TopicMessageSubmitTransaction({

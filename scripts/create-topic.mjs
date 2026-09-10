@@ -8,17 +8,10 @@
  * Costs testnet HBAR only, which the faucet hands out for free.
  */
 
-import { readFileSync } from "node:fs";
-import { Client, PrivateKey, TopicCreateTransaction } from "@hashgraph/sdk";
+import { Client, TopicCreateTransaction } from "@hashgraph/sdk";
+import { loadEnv, parseKey } from "./key.mjs";
 
-try {
-  for (const line of readFileSync(new URL("../.env.local", import.meta.url), "utf8").split("\n")) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
-  }
-} catch {
-  // no .env.local — rely on the ambient environment
-}
+loadEnv(new URL("../.env.local", import.meta.url));
 
 const id = process.env.HEDERA_OPERATOR_ID;
 const key = process.env.HEDERA_OPERATOR_KEY;
@@ -30,7 +23,7 @@ if (!id || !key) {
 }
 
 const client = process.env.HEDERA_NETWORK === "mainnet" ? Client.forMainnet() : Client.forTestnet();
-client.setOperator(id, PrivateKey.fromStringDer(key));
+client.setOperator(id, parseKey(key));
 
 const receipt = await new TopicCreateTransaction()
   .setTopicMemo("Squash — netting run proofs")

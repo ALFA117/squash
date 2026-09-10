@@ -12,18 +12,10 @@
  * TESTNET account. Never point this at a key holding real funds.
  */
 
-import { readFileSync } from "node:fs";
-import { AccountId, Hbar, PrivateKey, TransferTransaction, TransactionId } from "@hashgraph/sdk";
+import { AccountId, Hbar, TransferTransaction, TransactionId } from "@hashgraph/sdk";
+import { loadEnv, parseKey } from "./key.mjs";
 
-// --- tiny .env.local reader so the script has no extra dependency ----------
-try {
-  for (const line of readFileSync(new URL("../.env.local", import.meta.url), "utf8").split("\n")) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
-  }
-} catch {
-  // no .env.local — rely on the ambient environment
-}
+loadEnv(new URL("../.env.local", import.meta.url));
 
 const ENDPOINT = process.argv[2] ?? "http://localhost:3030/api/v1/net";
 
@@ -95,7 +87,7 @@ async function main() {
 
   const payer = AccountId.fromString(operatorId);
   const feePayer = AccountId.fromString(req.extra.feePayer);
-  const key = PrivateKey.fromStringDer(operatorKey);
+  const key = parseKey(operatorKey);
   const tinybars = Number(req.amount);
 
   // The transaction id names the FEE PAYER, so the facilitator's account is
