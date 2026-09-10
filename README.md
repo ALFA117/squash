@@ -14,6 +14,8 @@ x402 on Hedera. No API key, no subscription, no seat.
 15 obligations between 6 people  →  3 transfers  ·  80% fewer, 80% less in fees
 ```
 
+**Live:** <https://squash-pay.vercel.app> — `/` is the group, `/plan` is the settlement.
+
 ---
 
 ## Status
@@ -21,13 +23,19 @@ x402 on Hedera. No API key, no subscription, no seat.
 | Piece | State |
 |---|---|
 | Netting engine + exact minimum solver | **done**, 15 tests green |
-| `POST /api/v1/net` with metered quote | **done**, answers free while the rail is built |
-| Group + settlement plan UI | **done** |
-| x402 payment via Blocky402 facilitator | next |
-| HCS proof-of-run audit trail | next |
+| `POST /api/v1/net`, priced per obligation | **done**, live |
+| Group + settlement plan UI | **done**, live |
+| x402 402-challenge on Hedera `exact` scheme | **done** — schema checked against the live facilitator |
+| Agent that discovers the service and is quoted | **done** (`scripts/agent.mjs`) |
+| Verify + settle through Blocky402 | **written, needs a funded testnet account to exercise** |
+| HCS proof-of-run audit trail | **written, needs a topic** (`scripts/create-topic.mjs`) |
 | Scheduled Transaction atomic settlement | next |
 | Privy embedded wallets | next |
 | World Selfie Check on group join | next |
+
+Everything above the line runs today with no credentials. The two "needs an
+account" rows are wired end to end but have not yet moved real testnet HBAR —
+that takes one free account from the Hedera portal and nothing else.
 
 ---
 
