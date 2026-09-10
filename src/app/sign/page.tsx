@@ -88,7 +88,11 @@ export default function SignScreen() {
         </div>
 
         <div className="card">
-          {plan.transfers.map((t) => {
+          {/* Whoever is still missing goes last, so the screen reads as a
+              queue closing in on the one signature that is left. */}
+          {[...plan.transfers]
+            .sort((a, b) => Number(confirmed.includes(b.from)) - Number(confirmed.includes(a.from)))
+            .map((t) => {
             const isYou = t.from === "tu";
             const done = confirmed.includes(t.from);
             return (
