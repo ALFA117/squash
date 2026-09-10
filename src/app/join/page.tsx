@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { VALLE_DE_BRAVO } from "@/lib/sample";
+import { useLocale } from "@/components/Locale";
 
 /**
  * Joining a group.
@@ -10,6 +13,7 @@ import { VALLE_DE_BRAVO } from "@/lib/sample";
  */
 export default function JoinScreen() {
   const others = VALLE_DE_BRAVO.people.filter((p) => !p.isYou);
+  const { t } = useLocale();
 
   return (
     <main className="phone" style={{ padding: "30px 26px 26px" }}>
@@ -29,7 +33,7 @@ export default function JoinScreen() {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7 }}>
-          <span className="label">ROSA TE INVITÓ A</span>
+          <span className="label">{t("ROSA INVITED YOU TO", "ROSA TE INVITÓ A")}</span>
           <span
             style={{
               fontFamily: "var(--f-display)",
@@ -42,7 +46,7 @@ export default function JoinScreen() {
             {VALLE_DE_BRAVO.name}
           </span>
           <span style={{ fontSize: 13.5, color: "var(--muted)" }}>
-            {VALLE_DE_BRAVO.people.length} personas · {VALLE_DE_BRAVO.dates}
+            {VALLE_DE_BRAVO.people.length} {t("people", "personas")} · {VALLE_DE_BRAVO.dates}
           </span>
         </div>
 
@@ -94,11 +98,13 @@ export default function JoinScreen() {
               textWrap: "balance",
             }}
           >
-            Una persona, un lugar en el grupo.
+            {t("One person, one place in the group.", "Una persona, un lugar en el grupo.")}
           </span>
           <span style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--muted)", textWrap: "pretty" }}>
-            Confirmamos que eres tú para que nadie pueda inventar participantes y meter gastos que no
-            existen.
+            {t(
+              "We confirm it is you, so nobody can invent participants or add expenses that do not exist.",
+              "Confirmamos que eres tú para que nadie pueda inventar participantes y meter gastos que no existen.",
+            )}
           </span>
         </div>
       </div>
@@ -109,9 +115,9 @@ export default function JoinScreen() {
             <path d="M3 8.5h3.2l1.6-2.4h8.4l1.6 2.4H21v10H3z" />
             <circle cx="12" cy="13" r="3.4" />
           </svg>
-          Tomar selfie
+          {t("Take a selfie", "Tomar selfie")}
         </Link>
-        <span style={{ fontSize: 11.5, color: "var(--muted)" }}>La foto no se guarda en ningún lado.</span>
+        <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("Your photo is never saved.", "La foto no se guarda en ningún lado.")}</span>
       </div>
     </main>
   );

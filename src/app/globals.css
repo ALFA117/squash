@@ -29,6 +29,45 @@ body {
   padding: 0;
 }
 
+.language-toggle {
+  position: fixed;
+  z-index: 20;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: inline-flex;
+  min-height: 36px;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 2px 10px rgb(23 27 23 / 8%);
+  backdrop-filter: blur(8px);
+}
+
+.language-option {
+  min-width: 36px;
+  min-height: 28px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.language-option.active {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.language-option:focus-visible {
+  outline: 2px solid var(--settled);
+  outline-offset: 2px;
+}
+
 body {
   background: var(--surface-2);
   color: var(--ink);

@@ -1,3 +1,7 @@
+"use client";
+
+import { useLocale } from "@/components/Locale";
+
 interface Edge {
   from: string;
   to: string;
@@ -44,6 +48,7 @@ const DRAW_MS = 550;
  * collapses these to their end state rather than removing them.
  */
 export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
+  const { t } = useLocale();
   const n = nodes.length;
   const at = new Map<string, { x: number; y: number }>();
 
@@ -77,7 +82,10 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
       viewBox={`0 0 ${W} ${H}`}
       style={{ width: "100%", height: "auto", display: "block" }}
       role="img"
-      aria-label={`${nodes.length} personas con ${grossEdges.length} deudas cruzadas comprimidas a ${transfers.length} transferencias`}
+      aria-label={t(
+        `${nodes.length} people with ${grossEdges.length} crossed debts compressed to ${transfers.length} transfers`,
+        `${nodes.length} personas con ${grossEdges.length} deudas cruzadas comprimidas a ${transfers.length} transferencias`,
+      )}
     >
       <defs>
         <marker
@@ -179,7 +187,7 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
         letterSpacing="0.8"
         fill="var(--muted)"
       >
-        LO TENUE ES LO QUE SE DEBÍAN ANTES
+        {t("FAINT LINES ARE WHAT THEY OWED BEFORE", "LO TENUE ES LO QUE SE DEBÍAN ANTES")}
       </text>
     </svg>
   );

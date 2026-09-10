@@ -7,6 +7,7 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { PayingNotice } from "@/components/PayingNotice";
 import { formatCents, type Transfer } from "@/lib/netting";
 import { personInitial, personName } from "@/lib/sample";
+import { useLocale } from "@/components/Locale";
 
 /**
  * Waiting for signatures.
@@ -23,6 +24,7 @@ import { personInitial, personName } from "@/lib/sample";
  */
 export default function SignScreen() {
   const router = useRouter();
+  const { t, locale } = useLocale();
 
   const [scheduleId, setScheduleId] = useState<string | null>(null);
   const [transfers, setTransfers] = useState<Transfer[] | null>(null);
@@ -62,7 +64,7 @@ export default function SignScreen() {
           error?: string;
         };
         if (data.error || !data.scheduleId || !data.transfers) {
-          throw new Error(data.error ?? "No se pudo crear la liquidación");
+          throw new Error(data.error ?? t("We couldn't create the settlement", "No se pudo crear la liquidación"));
         }
 
         setScheduleId(data.scheduleId);
@@ -81,15 +83,15 @@ export default function SignScreen() {
     return (
       <main className="phone">
         <div className="screen-head">
-          <Link href="/plan" className="back" aria-label="Volver al plan">
+          <Link href="/plan" className="back" aria-label={t("Back to plan", "Volver al plan")}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 5l-7 7 7 7" />
             </svg>
           </Link>
-          <h1 className="title">Esperando a todos</h1>
+          <h1 className="title">{t("Waiting for everyone", "Esperando a todos")}</h1>
         </div>
         <p style={{ padding: "0 22px", color: "var(--owed)", fontSize: 14, lineHeight: 1.5 }}>
-          No se pudo preparar la liquidación: {error}
+          {t("We couldn't prepare the settlement", "No se pudo preparar la liquidación")}: {error}
         </p>
       </main>
     );
@@ -99,7 +101,7 @@ export default function SignScreen() {
     return (
       <main className="phone">
         <div className="screen-head">
-          <h1 className="title">Esperando a todos</h1>
+          <h1 className="title">{t("Waiting for everyone", "Esperando a todos")}</h1>
         </div>
         <PayingNotice />
       </main>
@@ -114,12 +116,12 @@ export default function SignScreen() {
   return (
     <main className="phone">
       <div className="screen-head">
-        <Link href="/plan" className="back" aria-label="Volver al plan">
+        <Link href="/plan" className="back" aria-label={t("Back to plan", "Volver al plan")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="title">Esperando a todos</h1>
+        <h1 className="title">{t("Waiting for everyone", "Esperando a todos")}</h1>
       </div>
 
       <div style={{ padding: "0 22px", display: "flex", flexDirection: "column", gap: 18, flexGrow: 1 }}>
@@ -129,7 +131,7 @@ export default function SignScreen() {
               {signed.length}
             </span>
             <span style={{ fontFamily: "var(--f-display)", fontSize: 23, color: "var(--muted)" }}>
-              de {payers.length} ya confirmaron
+              {t("of", "de")} {payers.length} {t("have confirmed", "ya confirmaron")}
             </span>
           </div>
           <div style={{ display: "flex", gap: 5 }}>
@@ -152,27 +154,27 @@ export default function SignScreen() {
         <div className="card">
           {[...transfers]
             .sort((a, b) => Number(signed.includes(b.from)) - Number(signed.includes(a.from)))
-            .map((t) => {
-              const isYou = t.from === "tu";
-              const done = signed.includes(t.from);
+            .map((transfer) => {
+              const isYou = transfer.from === "tu";
+              const done = signed.includes(transfer.from);
               return (
                 <motion.div
                   layout
                   transition={{ type: "spring", stiffness: 300, damping: 28 }}
                   className={!done && isYou ? "row awaiting" : "row"}
-                  key={t.from}
+                  key={transfer.from}
                   style={!done && isYou ? { background: "var(--surface-2)" } : undefined}
                 >
                   <span className={isYou ? "avatar you" : "avatar"} style={{ width: 34, height: 34 }}>
-                    {personInitial(t.from)}
+                    {personInitial(transfer.from)}
                   </span>
                   <span className="grow" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                     <span style={{ fontSize: 14.5, fontWeight: isYou ? 600 : 500 }}>
-                      {personName(t.from)}
+                      {personName(transfer.from)}
                     </span>
                     <span style={{ fontSize: 11.5, color: done ? "var(--settled)" : "var(--muted)" }}>
-                      {done ? "Confirmó" : isYou ? "Falta tu confirmación" : "Firmando…"} ·{" "}
-                      {formatCents(t.cents)}
+                      {done ? t("Confirmed", "Confirmó") : isYou ? t("Your confirmation is needed", "Falta tu confirmación") : t("Signing…", "Firmando…")} ·{" "}
+                      {formatCents(transfer.cents)}
                     </span>
                   </span>
                   <AnimatePresence mode="wait" initial={false}>
@@ -220,7 +222,7 @@ export default function SignScreen() {
             ))}
           </span>
           <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
-            {receivers.map(personName).join(", ").replace(/, ([^,]*)$/, " y $1")} solo reciben.
+            {receivers.map(personName).join(", ").replace(/, ([^,]*)$/, locale === "es" ? " y $1" : " and $1")} {t("only receive.", "solo reciben.")}
           </span>
         </div>
 
@@ -231,11 +233,10 @@ export default function SignScreen() {
           </svg>
           <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <span style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.3 }}>
-              Nadie paga hasta que los {payers.length} confirmen.
+              {t(`Nobody pays until all ${payers.length} confirm.`, `Nadie paga hasta que los ${payers.length} confirmen.`)}
             </span>
             <span style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.45, textWrap: "pretty" }}>
-              Las {transfers.length} transferencias son una sola transacción pendiente. No puede
-              ejecutarse a medias: sale completa o no sale.
+              {t(`These ${transfers.length} transfers are one pending transaction. It cannot execute halfway: it all goes through, or none of it does.`, `Las ${transfers.length} transferencias son una sola transacción pendiente. No puede ejecutarse a medias: sale completa o no sale.`)}
             </span>
           </span>
         </div>
@@ -244,10 +245,10 @@ export default function SignScreen() {
       <div style={{ padding: "0 22px 24px", display: "flex", flexDirection: "column", gap: 11 }}>
         {yours && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 3px" }}>
-            <span style={{ fontSize: 13, color: "var(--muted)" }}>Tu parte</span>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("Your part", "Tu parte")}</span>
             <span className="money" style={{ fontSize: 15, fontWeight: 500 }}>
               {formatCents(yours.cents)}{" "}
-              <span style={{ color: "var(--muted)", fontWeight: 400 }}>a {personName(yours.to)}</span>
+              <span style={{ color: "var(--muted)", fontWeight: 400 }}>{t("to", "a")} {personName(yours.to)}</span>
             </span>
           </div>
         )}
@@ -266,7 +267,7 @@ export default function SignScreen() {
             }
           }}
         >
-          {busy ? "Liquidando…" : othersReady ? "Confirmar mi parte" : "Esperando a los demás…"}
+          {busy ? t("Settling…", "Liquidando…") : othersReady ? t("Confirm my part", "Confirmar mi parte") : t("Waiting for the others…", "Esperando a los demás…")}
         </button>
       </div>
     </main>

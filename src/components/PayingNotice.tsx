@@ -1,3 +1,7 @@
+"use client";
+
+import { useLocale } from "@/components/Locale";
+
 /**
  * The wait is the interesting part, so say what is happening.
  *
@@ -6,6 +10,7 @@
  * spinner that reads as a hang; said out loud it is the whole pitch.
  */
 export function PayingNotice() {
+  const { t } = useLocale();
   return (
     <div
       role="status"
@@ -19,11 +24,13 @@ export function PayingNotice() {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
         <span className="pulse-dot" aria-hidden="true" />
-        <span style={{ fontSize: 15, fontWeight: 500 }}>Pagando el cálculo…</span>
+        <span style={{ fontSize: 15, fontWeight: 500 }}>{t("Paying for the calculation…", "Pagando el cálculo…")}</span>
       </div>
       <span style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5, maxWidth: 300 }}>
-        El motor cobra por obligación y el cargo se liquida antes de responder.
-        Tarda unos segundos porque es una transacción real.
+        {t(
+          "The engine charges per obligation and settles the charge before it replies. This takes a few seconds because it is a real transaction.",
+          "El motor cobra por obligación y el cargo se liquida antes de responder. Tarda unos segundos porque es una transacción real.",
+        )}
       </span>
     </div>
   );

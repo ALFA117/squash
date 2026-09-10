@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { formatCents, netExpenses } from "@/lib/netting";
 import { personName, VALLE_DE_BRAVO } from "@/lib/sample";
+import { useLocale } from "@/components/Locale";
 
 export default function GroupScreen() {
+  const { t, locale } = useLocale();
   const { balances, grossEdges } = netExpenses(VALLE_DE_BRAVO.expenses);
   const you = VALLE_DE_BRAVO.people.find((p) => p.isYou)!;
   const yourBalance = balances[you.id] ?? 0;
@@ -19,12 +23,12 @@ export default function GroupScreen() {
         <div style={{ display: "flex", flexDirection: "column" }}>
           <h1 className="title">{VALLE_DE_BRAVO.name}</h1>
           <span className="subtitle">
-            {VALLE_DE_BRAVO.people.length} personas · {VALLE_DE_BRAVO.expenses.length} gastos
+            {VALLE_DE_BRAVO.people.length} {t("people", "personas")} · {VALLE_DE_BRAVO.expenses.length} {t("expenses", "gastos")}
           </span>
         </div>
         <Link
           href="/expense"
-          aria-label="Agregar gasto"
+          aria-label={t("Add expense", "Agregar gasto")}
           style={{
             width: 44,
             height: 44,
@@ -55,7 +59,7 @@ export default function GroupScreen() {
           gap: 2,
         }}
       >
-        <span className="label">TU SALDO</span>
+        <span className="label">{t("YOUR BALANCE", "TU SALDO")}</span>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
           <span
             className="money"
@@ -71,7 +75,7 @@ export default function GroupScreen() {
           <span style={{ fontSize: 12, color: "var(--muted)" }}>MXN</span>
         </div>
         <span style={{ fontSize: 13, color: "var(--muted)" }}>
-          {creditors.join(", ").replace(/, ([^,]*)$/, " y $1")} pusieron de más.
+          {creditors.join(", ").replace(/, ([^,]*)$/, locale === "es" ? " y $1" : " and $1")} {t("paid more than their share.", "pusieron de más.")}
         </span>
       </section>
 
@@ -89,7 +93,7 @@ export default function GroupScreen() {
               <div className="grow" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 <span style={{ fontSize: 14.5, fontWeight: 500 }}>{e.label}</span>
                 <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
-                  {e.payer === you.id ? "Tú pagaste" : `${personName(e.payer)} pagó`}
+                  {e.payer === you.id ? t("You paid", "Tú pagaste") : `${personName(e.payer)} ${t("paid", "pagó")}`}
                 </span>
               </div>
               <span className="money">{formatCents(e.cents)}</span>
@@ -100,10 +104,10 @@ export default function GroupScreen() {
 
       <div className="foot">
         <Link href="/plan" className="btn btn-settle">
-          Liquidar el grupo
+          {t("Settle the group", "Liquidar el grupo")}
         </Link>
         <span style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
-          {grossEdges.length} deudas cruzadas entre {VALLE_DE_BRAVO.people.length} personas
+          {grossEdges.length} {t("crossed debts between", "deudas cruzadas entre")} {VALLE_DE_BRAVO.people.length} {t("people", "personas")}
         </span>
       </div>
     </main>

@@ -7,9 +7,11 @@ import { PayingNotice } from "@/components/PayingNotice";
 import { formatCents } from "@/lib/netting";
 import { personInitial, personName, VALLE_DE_BRAVO as GROUP } from "@/lib/sample";
 import { usePlan } from "@/lib/usePlan";
+import { useLocale } from "@/components/Locale";
 
 export default function PlanScreen() {
   const { plan, error } = usePlan();
+  const { t } = useLocale();
   const reducedMotion = useReducedMotion();
   const entrance = reducedMotion
     ? { duration: 0 }
@@ -24,17 +26,17 @@ export default function PlanScreen() {
   return (
     <main className="phone">
       <div className="screen-head">
-        <Link href="/grupo" className="back" aria-label="Volver al grupo">
+        <Link href="/grupo" className="back" aria-label={t("Back to group", "Volver al grupo")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="title">Plan de liquidación</h1>
+        <h1 className="title">{t("Settlement plan", "Plan de liquidación")}</h1>
       </div>
 
       {error && (
         <p role="alert" style={{ padding: "0 22px", color: "var(--owed)", fontSize: 14 }}>
-          No se pudo calcular el plan: {error}
+          {t("We couldn't calculate the plan", "No se pudo calcular el plan")}: {error}
         </p>
       )}
 
@@ -60,9 +62,9 @@ export default function PlanScreen() {
               </span>
             </div>
             <span style={{ fontSize: 13.5, color: "var(--muted)" }}>
-              transferencias en vez de {plan.grossEdges.length} ·{" "}
+              {t("transfers instead of", "transferencias en vez de")} {plan.grossEdges.length} ·{" "}
               <strong style={{ color: "var(--settled)", fontWeight: 500 }}>
-                {Math.round(plan.compression * 100)}% menos comisiones
+                {Math.round(plan.compression * 100)}% {t("fewer fees", "menos comisiones")}
               </strong>
             </span>
           </motion.section>
@@ -82,7 +84,7 @@ export default function PlanScreen() {
             transition={reducedMotion ? entrance : { ...entrance, delay: 0.16 }}
             style={{ padding: "4px 22px 0", display: "flex", flexDirection: "column", gap: 7 }}
           >
-            <span className="label">LO QUE SE MUEVE</span>
+            <span className="label">{t("WHAT MOVES", "LO QUE SE MUEVE")}</span>
             <div className="card">
               {plan.transfers.map((t, index) => (
                 <motion.div
@@ -131,13 +133,13 @@ export default function PlanScreen() {
                 <path d="M4 12.5l5 5L20 6.5" />
               </svg>
               <span className="grow">
-                cálculo del plan · {plan.price.obligations} obligaciones
-                {plan.paid && plan.receipt ? " · pagado" : plan.cached ? " · en caché" : ""}
+                {t("plan calculation", "cálculo del plan")} · {plan.price.obligations} {t("obligations", "obligaciones")}
+                {plan.paid && plan.receipt ? ` · ${t("paid", "pagado")}` : plan.cached ? ` · ${t("cached", "en caché")}` : ""}
               </span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{plan.price.hbar} ℏ</span>
             </div>
             <Link className="btn btn-settle" href="/sign">
-              Confirmar y firmar
+              {t("Confirm and sign", "Confirmar y firmar")}
             </Link>
           </motion.div>
         </>

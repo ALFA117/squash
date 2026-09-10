@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatCents } from "@/lib/netting";
 import { VALLE_DE_BRAVO } from "@/lib/sample";
+import { useLocale } from "@/components/Locale";
 
 /**
  * Adding an expense.
@@ -14,10 +15,11 @@ import { VALLE_DE_BRAVO } from "@/lib/sample";
  */
 export default function ExpenseScreen() {
   const router = useRouter();
+  const { t } = useLocale();
   const people = VALLE_DE_BRAVO.people;
 
   const [amount, setAmount] = useState("564.00");
-  const [label, setLabel] = useState("Casetas de la autopista");
+  const [label, setLabel] = useState(t("Highway tolls", "Casetas de la autopista"));
   const [payer, setPayer] = useState("tu");
   const [among, setAmong] = useState<string[]>(people.map((p) => p.id));
 
@@ -39,8 +41,8 @@ export default function ExpenseScreen() {
   return (
     <main className="phone">
       <div className="screen-head" style={{ justifyContent: "space-between" }}>
-        <h1 className="title">Nuevo gasto</h1>
-        <Link href="/grupo" className="back" style={{ marginLeft: 0, marginRight: -10 }} aria-label="Cancelar">
+        <h1 className="title">{t("New expense", "Nuevo gasto")}</h1>
+        <Link href="/grupo" className="back" style={{ marginLeft: 0, marginRight: -10 }} aria-label={t("Cancel", "Cancelar")}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.6" strokeLinecap="round">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
@@ -56,7 +58,7 @@ export default function ExpenseScreen() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               inputMode="decimal"
-              aria-label="Monto"
+              aria-label={t("Amount", "Monto")}
             />
           </div>
           <div style={{ display: "flex", gap: 6 }}>
@@ -66,17 +68,17 @@ export default function ExpenseScreen() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-          <span className="label">CONCEPTO</span>
+          <span className="label">{t("DESCRIPTION", "CONCEPTO")}</span>
           <input
             className="text-input"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            aria-label="Concepto"
+            aria-label={t("Description", "Concepto")}
           />
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          <span className="label">QUIÉN PAGÓ</span>
+          <span className="label">{t("WHO PAID", "QUIÉN PAGÓ")}</span>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {people.map((p) => (
               <button
@@ -94,9 +96,9 @@ export default function ExpenseScreen() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span className="label">SE DIVIDE ENTRE</span>
+            <span className="label">{t("SPLIT BETWEEN", "SE DIVIDE ENTRE")}</span>
             <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
-              {among.length} de {people.length}
+              {among.length} {t("of", "de")} {people.length}
             </span>
           </div>
 
@@ -137,7 +139,7 @@ export default function ExpenseScreen() {
           disabled={cents <= 0 || among.length === 0}
           onClick={() => router.push("/grupo")}
         >
-          Guardar gasto
+          {t("Save expense", "Guardar gasto")}
         </button>
       </div>
     </main>
