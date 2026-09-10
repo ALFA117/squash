@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { DebtGraph } from "@/components/DebtGraph";
+import { PayingNotice } from "@/components/PayingNotice";
 import { formatCents } from "@/lib/netting";
 import { personInitial, personName, VALLE_DE_BRAVO as GROUP } from "@/lib/sample";
 import { usePlan } from "@/lib/usePlan";
@@ -32,11 +33,7 @@ export default function PlanScreen() {
         </p>
       )}
 
-      {!plan && !error && (
-        <p style={{ padding: "0 22px", color: "var(--muted)", fontSize: 14 }}>
-          Calculando el plan…
-        </p>
-      )}
+      {!plan && !error && <PayingNotice />}
 
       {plan && (
         <>

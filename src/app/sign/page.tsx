@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PayingNotice } from "@/components/PayingNotice";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatCents } from "@/lib/netting";
@@ -39,7 +40,7 @@ export default function SignScreen() {
         <div className="screen-head">
           <h1 className="title">Esperando a todos</h1>
         </div>
-        <p style={{ padding: "0 22px", color: "var(--muted)", fontSize: 14 }}>Cargando…</p>
+        <PayingNotice />
       </main>
     );
   }
