@@ -66,20 +66,6 @@ service without holding the network's token.
 Hash the same obligations yourself, find the message, and check that the plan
 we published is the plan we ran. The compression is auditable, not asserted.
 
----|---|
-| Netting engine + exact minimum solver | **done**, 15 tests green |
-| `POST /api/v1/net`, priced per obligation | **done**, live |
-| Group + settlement plan UI | **done**, live |
-| x402 402-challenge on Hedera `exact` scheme | **done** — schema checked against the live facilitator |
-| Agent that discovers the service and is quoted | **done** (`scripts/agent.mjs`) |
-| Verify + settle through Blocky402 | **written, needs a funded testnet account to exercise** |
-| HCS proof-of-run audit trail | **written, needs a topic** (`scripts/create-topic.mjs`) |
-| Scheduled Transaction atomic settlement | next |
-| Privy embedded wallets | next |
-| World Selfie Check on group join | next |
-
----
-
 ## The engine
 
 `src/lib/netting.ts`. Everything is integer cents; no floats touch money.
