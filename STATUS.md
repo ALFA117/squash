@@ -1,9 +1,9 @@
-# Status — 9 September 2026, 21:30 CST
+# Status — 9 September 2026, 23:00 CST
 
 Submissions close **Sunday 13 September, 10:00**. Roughly 3½ days left.
 
-This file is the honest ledger: what runs, what is written but never executed,
-and what has not been started. Nothing here is aspirational.
+This file is the honest ledger: what runs, what is demo-shaped, and what has
+not been started. Nothing here is aspirational.
 
 ---
 
@@ -106,10 +106,11 @@ point on Friday night.
 
 ## Suggested order
 
-1. **Thu am** — Scheduled Transactions for real. Closes the integrity gap.
-2. **Thu pm** — Privy. Cheapest hours-per-dollar; its track describes this app.
-3. **Fri** — World, if sandbox access arrived. If not, ship with two SDKs.
-4. **Sat** — video, description, diagram. Submit Saturday night.
+1. **Thu** — Privy. Cheapest hours-per-dollar, and its track describes this
+   app exactly. It also removes the last thing that is demo-shaped: the app
+   holding six people's keys.
+2. **Fri** — World, if sandbox access arrived. If not, ship with two SDKs.
+3. **Sat** — video, description, diagram. Submit Saturday night.
 
 Cut order when something slips: World first, then Privy. The last thing to
 touch is the video — a project without one does not exist to a judge.
@@ -124,6 +125,9 @@ touch is the video — a project without one does not exist to a judge.
 - The plan takes ~10 s on a cold request because the app is really paying for
   it. The loading state says so rather than looking like a hang. Repeat loads
   hit a 5-minute cache and are instant.
-- `/done` shows a "demo run" line instead of an explorer link, because no
-  settlement receipt exists yet. That is correct: it will show a real link the
-  moment scheduled settlement lands, and it never invents a hash.
+- `/sign` takes ~15 s before its button goes live: it creates the scheduled
+  transaction and then the other two debtors sign, each a real transaction
+  landing one at a time. The list fills in as they do, which is the part worth
+  filming.
+- `/done` only links to the explorer when it was reached through an actual
+  settlement. Opened directly it says so instead of inventing a hash.
