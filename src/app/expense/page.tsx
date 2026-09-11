@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatCents } from "@/lib/netting";
-import { VALLE_DE_BRAVO } from "@/lib/sample";
 import { useLocale } from "@/components/Locale";
+import { useGroup } from "@/components/GroupProvider";
 
 /**
  * Adding an expense.
@@ -16,14 +16,32 @@ import { useLocale } from "@/components/Locale";
 export default function ExpenseScreen() {
   const router = useRouter();
   const { t } = useLocale();
-  const people = VALLE_DE_BRAVO.people;
+  const { people, addExpense } = useGroup();
 
   const [amount, setAmount] = useState("564.00");
+  const [currency, setCurrency] = useState<"MXN" | "USD">("MXN");
   const [label, setLabel] = useState(t("Highway tolls", "Casetas de la autopista"));
   const [payer, setPayer] = useState("tu");
   const [among, setAmong] = useState<string[]>(people.map((p) => p.id));
 
-  const cents = Math.round((Number(amount.replace(/,/g, "")) || 0) * 100);
+  const exchangeRate = 20;
+
+  const handleCurrencyChange = (newCurrency: "MXN" | "USD") => {
+    if (newCurrency === currency) return;
+    const currentAmount = parseFloat(amount.replace(/,/g, "")) || 0;
+    if (newCurrency === "USD") {
+      setAmount((currentAmount / exchangeRate).toFixed(2));
+    } else {
+      setAmount((currentAmount * exchangeRate).toFixed(2));
+    }
+    setCurrency(newCurrency);
+  };
+
+  const cents = useMemo(() => {
+    const rawAmount = parseFloat(amount.replace(/,/g, "")) || 0;
+    const mxnAmount = currency === "USD" ? rawAmount * exchangeRate : rawAmount;
+    return Math.round(mxnAmount * 100);
+  }, [amount, currency]);
 
   const shares = useMemo(() => {
     const k = among.length;
@@ -62,8 +80,20 @@ export default function ExpenseScreen() {
             />
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            <span className="chip chip-on">MXN</span>
-            <span className="chip">USD</span>
+            <button
+              type="button"
+              className={currency === "MXN" ? "chip chip-on" : "chip"}
+              onClick={() => handleCurrencyChange("MXN")}
+            >
+              MXN
+            </button>
+            <button
+              type="button"
+              className={currency === "USD" ? "chip chip-on" : "chip"}
+              onClick={() => handleCurrencyChange("USD")}
+            >
+              USD
+            </button>
           </div>
         </div>
 
@@ -137,7 +167,15 @@ export default function ExpenseScreen() {
           type="button"
           className="btn btn-dark"
           disabled={cents <= 0 || among.length === 0}
-          onClick={() => router.push("/grupo")}
+          onClick={() => {
+            addExpense({
+              label,
+              payer,
+              cents,
+              among,
+            });
+            router.push("/grupo");
+          }}
         >
           {t("Save expense", "Guardar gasto")}
         </button>

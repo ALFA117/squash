@@ -125,21 +125,37 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
           if (!at.has(t.from) || !at.has(t.to)) return null;
           const { x1, y1, x2, y2, length } = trim(t.from, t.to, NODE_R, NODE_R + 4);
           return (
-            <line
-              key={`t-${t.from}-${t.to}`}
-              className="dg-draw"
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              style={
-                {
-                  strokeDasharray: length,
-                  "--dg-len": `${length}`,
-                  animationDelay: `${TANGLE_MS + 150 + i * 120}ms`,
-                } as React.CSSProperties
-              }
-            />
+            <g key={`t-${t.from}-${t.to}`}>
+              <line
+                className="dg-draw"
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                style={
+                  {
+                    strokeDasharray: length,
+                    "--dg-len": `${length}`,
+                    animationDelay: `${TANGLE_MS + 150 + i * 120}ms`,
+                  } as React.CSSProperties
+                }
+              />
+              <text
+                x={(x1 + x2) / 2}
+                y={(y1 + y2) / 2}
+                fill="var(--settled)"
+                fontSize="9"
+                textAnchor="middle"
+                style={
+                  {
+                    animation: "dg-label-fade 500ms ease-out backwards",
+                    animationDelay: `${TANGLE_MS + 150 + i * 120}ms`,
+                  } as React.CSSProperties
+                }
+              >
+                {t.from[0].toUpperCase()}→{t.to[0].toUpperCase()}
+              </text>
+            </g>
           );
         })}
       </g>
