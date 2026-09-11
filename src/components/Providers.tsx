@@ -16,10 +16,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           logo: "/logo.svg", // Asumimos que hay un logo o se puede omitir
         },
         embeddedWallets: {
-          createOnLogin: "users-without-wallets",
+          ethereum: {
+            createOnLogin: "users-without-wallets",
+          },
         },
-        // Configuración para ocultar términos técnicos y usar español
-        language: "es-ES",
       }}
     >
       {children}
