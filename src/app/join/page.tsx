@@ -1,6 +1,6 @@
-"use client";
-
-import Link from "next/link";
+import { usePrivy } from "@privy-io/react-auth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { VALLE_DE_BRAVO } from "@/lib/sample";
 import { useLocale } from "@/components/Locale";
 
@@ -8,12 +8,28 @@ import { useLocale } from "@/components/Locale";
  * Joining a group.
  *
  * The credential check is not decoration: a netting set is only as honest as
- * its members. Someone who can invent counterparties can inject phantom debts
+ * its members. Someone who can invent counterparties can invent phantom debts
  * into the graph and walk away net positive. One person, one node.
  */
 export default function JoinScreen() {
+  const { login, authenticated, ready } = usePrivy();
+  const router = useRouter();
   const others = VALLE_DE_BRAVO.people.filter((p) => !p.isYou);
   const { t } = useLocale();
+
+  useEffect(() => {
+    if (ready && authenticated) {
+      router.push("/grupo");
+    }
+  }, [ready, authenticated, router]);
+
+  const handleJoin = () => {
+    if (authenticated) {
+      router.push("/grupo");
+    } else {
+      login();
+    }
+  };
 
   return (
     <main className="phone" style={{ padding: "30px 26px 26px" }}>
@@ -110,13 +126,13 @@ export default function JoinScreen() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-        <Link href="/grupo" className="btn btn-dark">
+        <button onClick={handleJoin} className="btn btn-dark" disabled={!ready}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 9 }}>
             <path d="M3 8.5h3.2l1.6-2.4h8.4l1.6 2.4H21v10H3z" />
             <circle cx="12" cy="13" r="3.4" />
           </svg>
           {t("Take a selfie", "Tomar selfie")}
-        </Link>
+        </button>
         <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("Your photo is never saved.", "La foto no se guarda en ningún lado.")}</span>
       </div>
     </main>

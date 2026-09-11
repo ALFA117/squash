@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { LanguageToggle, LocaleProvider } from "@/components/Locale";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "Squash",
@@ -19,10 +20,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <LocaleProvider>
-          <LanguageToggle />
-          {children}
-        </LocaleProvider>
+        <Providers>
+          <LocaleProvider>
+            <LanguageToggle />
+            {children}
+          </LocaleProvider>
+        </Providers>
       </body>
     </html>
   );
