@@ -220,13 +220,16 @@ export default function SignScreen() {
                         <path d="M4 12.5l5 5L20 6.5" />
                       </motion.svg>
                     ) : (
-                      <span
+                      <motion.span
                         key="pending"
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                         style={{
                           width: 18,
                           height: 18,
                           borderRadius: "50%",
                           border: `1.6px dashed ${isYou ? "var(--owed)" : "var(--rule)"}`,
+                          display: "block"
                         }}
                       />
                     )}
