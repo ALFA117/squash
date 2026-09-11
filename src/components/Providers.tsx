@@ -3,7 +3,7 @@
 import { PrivyProvider } from "@privy-io/react-auth";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "";
+  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmtwl2qcb00500djm14bkfixg";
 
   return (
     <PrivyProvider
