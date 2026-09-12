@@ -92,6 +92,26 @@ function cleanName(input: unknown, max: number): string {
   return name;
 }
 
+/**
+ * Store a member's secret, surviving a flaky database gateway.
+ *
+ * Seen in production: the insert answered 504 while the member row had
+ * already been written, leaving a person at the table with no way to prove
+ * who they are. So: retry, treat "already there" as success (a 504 can hide
+ * a commit), and if it still fails, remove the member so nobody is left
+ * holding a session that can never work.
+ */
+async function storeSecret(memberId: string, secret: string, rollback: () => Promise<void>) {
+  const db = serverClient();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await db.from("member_secrets").insert({ member_id: memberId, secret_hash: hashSecret(secret) });
+    if (!error || error.code === "23505") return;
+    await new Promise((r) => setTimeout(r, 350 * (attempt + 1)));
+  }
+  await rollback();
+  throw new GroupError("The table is busy — please try again in a moment", 503);
+}
+
 // ── reads ────────────────────────────────────────────────────────────────
 
 export async function getGroup(groupId: string): Promise<{ group: GroupRow; members: MemberRow[] }> {
@@ -203,10 +223,10 @@ export async function createGroup(input: {
   });
   if (mErr) throw new GroupError(mErr.message, 502);
 
-  const { error: sErr } = await db
-    .from("member_secrets")
-    .insert({ member_id: memberId, secret_hash: hashSecret(secret) });
-  if (sErr) throw new GroupError(sErr.message, 502);
+  await storeSecret(memberId, secret, async () => {
+    await db.from("members").delete().eq("id", memberId);
+    await db.from("groups").delete().eq("id", groupId);
+  });
 
   return { groupId, memberId, secret };
 }
@@ -247,10 +267,9 @@ export async function joinGroup(groupId: string, rawName: unknown) {
       throw new GroupError(error.message, 502);
     }
 
-    const { error: sErr } = await db
-      .from("member_secrets")
-      .insert({ member_id: memberId, secret_hash: hashSecret(secret) });
-    if (sErr) throw new GroupError(sErr.message, 502);
+    await storeSecret(memberId, secret, async () => {
+      await db.from("members").delete().eq("id", memberId);
+    });
 
     // In an equal split a new arrival changes everyone's share.
     if (group.split_mode === "equal") {
