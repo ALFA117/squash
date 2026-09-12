@@ -1,5 +1,7 @@
 "use client";
 
+import { LogoMark, Wordmark } from "@/components/Logo";
+import { Logo3D } from "@/components/Logo3D";
 import { PressLink } from "@/components/Press";
 import { Reveal } from "@/components/Reveal";
 import { useLocale } from "@/components/Locale";
@@ -29,8 +31,8 @@ export default function Landing() {
   return (
     <main className="landing">
       <nav className="lp-top" aria-label="Squash">
-        <img src="/brand/mark.webp" alt="" width={34} height={34} className="lp-top-mark" />
-        <img src="/brand/wordmark.webp" alt="Squash" width={112} height={18} className="lp-top-word" />
+        <LogoMark size={36} />
+        <Wordmark width={116} />
       </nav>
 
       <header className="lp-hero">
@@ -57,13 +59,9 @@ export default function Landing() {
             </PressLink>
           </div>
         </div>
-        <img
-          src="/brand/mark.webp"
-          alt={t("Squash logo: an eye inside a network of connections", "Logo de Squash: un ojo dentro de una red de conexiones")}
-          width={420}
-          height={420}
-          className="lp-hero-mark"
-        />
+        <div className="lp-hero-mark">
+          <Logo3D alt={t("Squash logo: an eye inside a network of connections", "Logo de Squash: un ojo dentro de una red de conexiones")} />
+        </div>
       </header>
 
       <Reveal>

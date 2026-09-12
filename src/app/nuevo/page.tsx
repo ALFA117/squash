@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { useLocale } from "@/components/Locale";
+import { LogoMark } from "@/components/Logo";
 import { PressButton } from "@/components/Press";
 import { saveSession } from "@/lib/groupSession";
 import { explain, fetchWithin } from "@/lib/http";
@@ -76,7 +77,7 @@ export default function NewBill() {
           </svg>
         </Link>
         <h1 className="title">{t("Split a bill", "Dividir una cuenta")}</h1>
-        <img src="/brand/mark.webp" alt="" width={30} height={30} className="head-mark" />
+        <LogoMark size={30} className="head-mark" />
       </div>
 
       <form onSubmit={submit} className="bill-form">

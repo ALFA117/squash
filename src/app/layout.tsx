@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { LanguageToggle, LocaleProvider } from "@/components/Locale";
 import Providers from "@/components/Providers";
+import { THEME_SCRIPT, ThemeToggle } from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "Squash — split the bill, nobody pays until everyone says yes",
@@ -10,12 +11,19 @@ export const metadata: Metadata = {
   openGraph: { images: ["/brand/logo.png"] },
 };
 
-export const viewport = { themeColor: "#f2f3f1" };
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f2f3f1" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e1319" },
+  ],
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Before first paint: pick light or dark so there is no flash. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
@@ -26,7 +34,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Providers>
           <LocaleProvider>
-            <LanguageToggle />
+            <div className="top-controls">
+              <ThemeToggle />
+              <LanguageToggle />
+            </div>
             {children}
           </LocaleProvider>
         </Providers>

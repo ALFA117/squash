@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/Locale";
+import { LogoMark } from "@/components/Logo";
 import { PressButton, PressLink } from "@/components/Press";
 import { clearSession, loadSession, saveSession, type GroupSession } from "@/lib/groupSession";
 import { explain, fetchWithin } from "@/lib/http";
@@ -895,7 +896,7 @@ function JoinView({
   return (
     <main className="phone">
       <form onSubmit={join} className="join-view">
-        <img src="/brand/mark.webp" alt="Squash" width={64} height={64} className="join-mark" />
+        <LogoMark size={64} className="join-mark" />
         <span className="label">
           {payer ? t(`${payer.name.toUpperCase()} INVITED YOU`, `${payer.name.toUpperCase()} TE INVITÓ`) : ""}
         </span>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LogoMark, Wordmark } from "@/components/Logo";
 import { PressLink } from "@/components/Press";
 import { useLocale } from "@/components/Locale";
 import { useGroup } from "@/components/GroupProvider";
@@ -23,8 +24,8 @@ export default function JoinScreen() {
   return (
     <main className="phone" style={{ padding: "26px 24px 24px" }}>
       <div className="brand-row">
-        <img src="/brand/mark.webp" alt="" className="brand-mark" width={32} height={32} />
-        <img src="/brand/wordmark.webp" alt="Squash" width={96} height={16} style={{ height: "auto" }} />
+        <LogoMark size={32} />
+        <Wordmark width={96} />
       </div>
 
       <div className="join-trip">
