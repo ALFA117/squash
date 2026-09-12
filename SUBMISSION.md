@@ -4,14 +4,25 @@
 
 ## Elevator pitch
 
-A group that shares expenses ends up owing everyone everything. Squash
-compresses that tangle to the **provable minimum** number of transfers, then
-settles the whole plan as **one Hedera scheduled transaction** that cannot
-execute until every payer has signed.
+Six friends, one restaurant bill, one card. Squash turns "I'll pay you back
+later" into a single payment that **cannot execute until everyone at the table
+has said yes** — enforced by the transaction itself, on Hedera.
+
+And when a group has been paying for each other for a whole trip, it
+compresses the tangle to the **provable minimum** number of transfers:
 
 ```
 15 obligations between 6 people  →  3 transfers  ·  80% fewer
 ```
+
+## Try it — about a minute
+
+1. Open <https://squash-pay.vercel.app/nuevo>. Enter your name and a bill, say $2,500.
+2. You get a **real QR**. Open it on a second device (or a private window) and join as someone else.
+3. Watch the first screen update **live** as people join.
+4. As admin, pick how to split: **equal parts**, **you set the amounts**, or **each enters their own**.
+5. Tap **Ask everyone to confirm**. The settlement now exists on chain, pending.
+6. Each person taps **Yes, I pay**. The last one executes it. Open the receipt.
 
 ## Don't take our word for it
 
@@ -19,70 +30,76 @@ Every claim below links to the chain.
 
 | Claim | Proof |
 |---|---|
-| An agent paid for a netting run over x402, and **spent nothing on gas** — the facilitator paid the fee | [tx `0.0.7162784@1789008230.889484170`](https://hashscan.io/testnet/transaction/0.0.7162784-1789008230-889484170) |
+| A bill split at a table, settled only after the last "yes" | [schedule `0.0.10510230`](https://hashscan.io/testnet/schedule/0.0.10510230) — Diego −$600, Luis −$600, Rosa +$1,200 |
+| A custom split, exactly as the admin set it | [schedule `0.0.10510081`](https://hashscan.io/testnet/schedule/0.0.10510081) — Diego −$1,000, Luis −$500, Rosa +$1,500 |
+| An agent paid for a netting run over x402, and **spent nothing on gas** | [tx `0.0.7162784@1789008230.889484170`](https://hashscan.io/testnet/transaction/0.0.7162784-1789008230-889484170) |
 | Each run's inputs and plan are published, so anyone can recompute it | [HCS topic `0.0.10452145`](https://hashscan.io/testnet/topic/0.0.10452145) |
-| A settlement that stayed pending through two signatures and executed on the third | [schedule `0.0.10509320`](https://hashscan.io/testnet/schedule/0.0.10509320) |
-
-## How it works
-
-1. **The group records expenses** — who paid, split among whom. Cents that do
-   not divide evenly are handed out one at a time, so shares always sum to the
-   exact total.
-2. **The engine computes the plan.** Every settlement plan decomposes into
-   groups that sum to zero, and a group of *k* costs *k − 1* transfers — so the
-   minimum is `n − max(disjoint zero-sum subsets)`, found exactly with a bitmask
-   DP. Above 15 balances it falls back to greedy and says so.
-3. **The app pays the engine for that computation**, over x402 on Hedera,
-   priced per obligation rather than per request. The browser never touches a
-   key; the app's server is the paying customer.
-4. **The plan becomes one scheduled transaction.** Every debit and every credit
-   in a single transfer list, pending until each debited account signs.
-5. **The last signature executes it** as a unit. Nobody pays until everybody
-   has — not because the app waits, but because the transaction cannot go
-   through incomplete.
 
 ## Why Hedera
 
-The product's promise is *nobody pays until everyone confirms*. On most
-chains that is a promise the app keeps. On Hedera it is a property of the
-transaction: a scheduled transaction simply cannot execute until its required
-signatures are present. That is the reason this is built here.
+The promise is *nobody pays until everyone confirms*. On most chains that is
+a promise the app keeps. On Hedera it is a property of the transaction: all
+the payments go into **one scheduled transaction** that simply cannot execute
+until every required signature is present. If one person never says yes, no
+money moves — for anyone.
 
-The x402 facilitator also **sponsors the network fee**, so whoever pays for the
-computation does not need to hold HBAR at all.
+The x402 facilitator also **sponsors the network fee**, so whoever pays for a
+computation does not need to hold HBAR.
 
-## Why the result is the minimum, not just small
+## How it works
 
-The usual greedy method — largest debtor pays largest creditor, repeat — also
-settles the sample trip in 3, but is not guaranteed to. On
-`{a: −100, b: +100, c: −250, d: +250}` it chains three transfers where two
-suffice. There is a test for exactly that case.
+**At the table.** Whoever paid opens the bill and is the admin. A QR carries
+the group's link; each person scans in and sees their share. The admin
+chooses the split. When it adds up to the bill exactly, confirmations open —
+and the split **freezes**, because the settlement already exists on chain with
+those amounts. Changing it means reopening, which abandons the pending
+transaction and clears every confirmation. Nobody can agree to one number and
+pay another.
+
+**Across a trip.** When several people paid for different things, the debts
+cross. The engine finds the minimum: every settlement plan decomposes into
+groups that sum to zero, and a group of *k* costs *k − 1* transfers, so the
+minimum is `n − max(disjoint zero-sum subsets)` — found exactly with a bitmask
+DP. The app **pays the engine per obligation over x402** for that computation.
+
+A single restaurant bill has one creditor, so there is nothing to compress —
+we say so in the product rather than pretend. The trip is where the engine
+earns its keep.
+
+## Security
+
+- **Anyone with the link can read a group; only the server can write.**
+  Row-level security compares the hash of a server-held token; the token is
+  verified absent from the public bundle.
+- **Nobody acts as someone else.** Each phone holds a secret whose hash lives
+  in a table no browser can read. We tested it: a member cannot confirm as
+  another, change another's amount, or change the split without being admin.
+- **Money is whole cents, end to end.** Equal splits are tested to sum to the
+  exact bill for every group size from 1 to 20.
 
 ## What is demo, stated plainly
 
-The six people in the sample group are throwaway **testnet accounts whose keys
-the app holds**, so it can sign on their behalf when they confirm. A production
-version gives each person their own wallet and never sees the key.
-
-**Privy is used for sign-in** — identity without a password or seed phrase.
-Signing Hedera transactions *with* a Privy wallet is not done here: a Privy
-wallet is an Ethereum key that does not control a Hedera account, and would
-need each account created from the wallet's public key. That is the next step,
-not a claim.
-
-Everything runs on **Hedera testnet**. The build cost nothing.
+- The people at the table settle through **testnet accounts the app holds**,
+  so it can sign when each person taps "yes". A production version gives each
+  person their own wallet and never sees the key.
+- **Privy is used for sign-in on the sample trip.** Signing Hedera
+  transactions *with* a Privy wallet is not done here: it is an Ethereum key
+  that does not control a Hedera account. That is the next step, not a claim.
+- Everything runs on **Hedera testnet**. The build cost nothing.
 
 ## Demo script
 
-1. **Landing** — the problem: a group's debts become a tangle.
-2. **The plan** — watch fifteen faint obligations settle, then three transfers
-   draw themselves through them. Point at the receipt line: the app just paid
-   for that calculation, on chain.
-3. **Signatures** — Diego signs, the schedule stays pending. Luis signs, still
-   pending. You sign, and it executes.
-4. **Done** — open the receipt in HashScan. It is a real scheduled transaction.
+1. **The table** — create a $2,500 bill; show the QR; a second phone joins and
+   the first screen updates on its own.
+2. **The split** — switch between equal, custom and "each their own"; show it
+   refusing to lock while the shares are short.
+3. **The yes** — ask for confirmations; one person signs, still pending; the
+   last signs, it executes. Open the receipt in HashScan.
+4. **The trip** — the sample trip's plan: fifteen obligations settle into
+   three transfers, and the receipt line shows the app just paid for that
+   calculation, on chain.
 
 ## Stack
 
-Next.js 16 · React 19 · TypeScript · `@hashgraph/sdk` · `@x402/hedera` ·
-Privy (sign-in) · Vercel. Hedera testnet.
+Next.js 16 · React 19 · TypeScript · Supabase (Postgres + Realtime, RLS) ·
+`@hashgraph/sdk` · `@x402/hedera` · Privy · Vercel · Hedera testnet.

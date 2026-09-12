@@ -26,15 +26,16 @@ works, what is written but never executed, and what has not been started.
 
 | Piece | State |
 |---|---|
-| Netting engine + exact minimum solver | **done**, 15 tests green |
+| **Split a bill at the table** — real QR, live, three split modes, everyone confirms | **done**, 19/19 against production |
+| Netting engine + exact minimum solver | **done** |
 | `POST /api/v1/net`, priced per obligation | **done**, live |
-| Landing page + six app screens | **done**, live |
 | x402 gate, Hedera `exact` scheme | **done** |
 | Agent completing a real paid request | **done — settled on testnet** |
 | HCS proof-of-run audit trail | **done — published on testnet** |
 | Scheduled Transaction atomic settlement | **done — executes on the last signature** |
-| Privy embedded wallets | next |
-| World Selfie Check on group join | next |
+| Tests | **41** — solver, split rules, input validation |
+| Privy | sign-in only; wallet signing on Hedera is future work |
+| World Selfie Check | not attempted |
 
 ---
 

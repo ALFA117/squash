@@ -1,4 +1,4 @@
-# Status — 9 September 2026, 23:00 CST
+# Status — 12 September 2026
 
 Submissions close **Sunday 13 September, 10:00**. Roughly 3½ days left.
 
@@ -6,6 +6,16 @@ This file is the honest ledger: what runs, what is demo-shaped, and what has
 not been started. Nothing here is aspirational.
 
 ---
+
+## 12 September — what changed
+
+Other agents broke settlement in production on 10-11 Sep (see
+CONTINUACION.md, section 0). Repaired and re-verified the same day. Then the
+real product flow was built: **split a bill at the table**, joined by a real
+QR, live across phones, split three ways, paid only when everyone says yes.
+
+`node scripts/test-dinner.mjs https://squash-pay.vercel.app` — 19 checks
+against production including five attacks. All pass.
 
 ## Works today, verifiable by anyone
 

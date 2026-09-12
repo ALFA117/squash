@@ -10,6 +10,27 @@ el jueves 10 a las 21:59 y lo cierra Alfa, no tú.
 
 ## 0. Auditoría — 12 de septiembre · LEE ESTO PRIMERO
 
+> ### ✅ Resuelto el mismo 12 de septiembre
+>
+> Todo lo crítico y lo serio de abajo **ya se arregló, se desplegó y se
+> verificó en producción** — contra el sitio en vivo y contra la cadena. La
+> auditoría se deja tal cual para que se entienda qué pasó y por qué el
+> código está como está.
+>
+> | Hallazgo | Estado |
+> |---|---|
+> | `/sign` muerta en producción | ✅ vuelve a la ruta que funciona — schedule `0.0.10509839` ejecutado en vivo |
+> | Rutas de firma con Privy que no podían funcionar | ✅ eliminadas, no se dejaron "por si acaso" |
+> | `/plan` y `/done` daban 405 | ✅ `/api/plan` acepta los gastos del grupo |
+> | El plan mostrado ≠ el plan pagado | ✅ ambas rutas usan los mismos gastos, por un solo validador |
+> | `.env.local` borrado por otra IA | ✅ restaurado del respaldo (12 variables) |
+> | `SUBMISSION.md` afirmaba cosas falsas | ✅ reescrito, cada afirmación enlaza a la cadena |
+> | QR decorativo en `/join` | ✅ eliminado; ahora hay un QR real en el flujo de la cena |
+> | Estado en `localStorage` | ✅ el flujo de la cena vive en Supabase con tiempo real |
+> | Logo 404, App ID de Privy escrito a mano | ✅ corregidos |
+>
+> Y se construyó el flujo completo de la sección 3.1b. Ver ahí.
+
 Entre el 10 y el 11 trabajaron otras IAs sobre el repo: 7 commits y 12
 archivos sin commitear. Esta es la revisión de lo que dejaron. Todo lo de
 abajo está verificado — contra el sitio en vivo y contra la cadena — no
@@ -130,14 +151,16 @@ Todo esto corre hoy y se puede verificar en el explorador:
 
 | Pieza | Estado |
 |---|---|
-| Solver de mínimo demostrable | listo, 15 tests |
+| **Dividir una cuenta en la mesa** — QR, tiempo real, 3 modos, todos confirman | listo, en vivo, 19/19 contra producción |
+| Solver de mínimo demostrable | listo |
 | `POST /api/v1/net` cobrado por obligación | listo, en vivo |
 | Puerta x402 (esquema `exact` de Hedera vía Blocky402) | listo |
 | Un agente que descubre, paga y recibe | listo, pagó en cadena |
 | La app pagándole al motor por el navegador | listo |
 | Prueba de cada corrida publicada en HCS | listo |
 | Liquidación atómica con Scheduled Transactions | listo, ejecuta con la última firma |
-| Portada + 6 pantallas | listo, en vivo |
+| Portada + viaje de ejemplo | listo, en vivo |
+| Tests | **41** (solver 15, reparto 15, validación 11) |
 
 **Pruebas en cadena, ábrelas:**
 
@@ -260,57 +283,80 @@ de entrada** — fácil de entender, todos la han vivido — y **el viaje es
 donde Squash brilla**. No vendas la cena como ejemplo de compresión; un
 juez que haga la cuenta lo nota.
 
-#### Qué hay y qué falta para este flujo
+#### Estado del flujo — construido y verificado
 
 | Paso | Estado |
 |---|---|
-| Dividir en partes iguales, con centavos exactos | ✅ existe (`netting.ts`) |
-| Montos por persona | 🟡 `/expense` los captura, falta el modo administrador |
-| Confirmación de todos antes de pagar | ✅ existe (Scheduled Transactions, probado) |
-| Pago atómico con la última firma | ✅ existe, verificado en cadena |
-| Recibo real | ✅ existe |
-| **QR real con enlace al grupo** | ❌ el actual es decorativo |
-| **Estado compartido entre teléfonos** | ❌ `localStorage`, cada teléfono aislado |
-| **"Tiempo real"** | ❌ depende del punto anterior |
-| Rol de administrador | ❌ no existe |
-| "Cada quien lo suyo" | ❌ no existe |
+| Crear la cuenta con el total (`/nuevo`) | ✅ |
+| **QR real** con el enlace al grupo | ✅ decodificado con un lector independiente: da exactamente la URL |
+| Entrar escaneando (`/g/[id]`) | ✅ la misma URL sirve para entrar y para ver |
+| **Estado compartido entre teléfonos** | ✅ Supabase (Postgres + Realtime) |
+| **Tiempo real** | ✅ probado: el websocket entrega cada entrada y cada cambio de parte |
+| Rol de administrador | ✅ solo el admin cambia el reparto |
+| Partes iguales, al centavo | ✅ probado para grupos de 1 a 20 |
+| Montos que pone el admin | ✅ no deja confirmar hasta que sume exacto |
+| Cada quien lo suyo | ✅ cada teléfono escribe su monto; nadie puede tocar el de otro |
+| Todos confirman antes de pagar | ✅ una sola transacción programada en la cadena |
+| El reparto se congela al pedir confirmaciones | ✅ reabrir abandona la transacción y borra confirmaciones |
+| Pago con el último "sí" | ✅ verificado en cadena, UI y API |
+| Recibo real | ✅ |
 
-#### La pieza que falta es una sola: estado compartido
+**Pruebas en cadena del flujo de la cena:**
 
-Casi todo lo que falta depende de lo mismo: **que el grupo viva en un
-servidor y no en cada teléfono.** Sin eso no hay QR que sirva (quien lo
-escanea no encuentra el grupo), no hay tiempo real, y no hay administrador
-cuya decisión vean los demás.
+- Reparto igual, manejado desde la interfaz — [schedule `0.0.10510230`](https://hashscan.io/testnet/schedule/0.0.10510230):
+  Diego −$600, Luis −$600, Rosa +$1,200.
+- Reparto personalizado — [schedule `0.0.10510081`](https://hashscan.io/testnet/schedule/0.0.10510081):
+  Diego −$1,000, Luis −$500, Rosa +$1,500.
 
-La opción natural es **Supabase**: base de datos con suscripciones en
-tiempo real y capa gratis. Esquema mínimo:
+**Cómo probarlo tú mismo:**
+
+```bash
+node scripts/test-dinner.mjs https://squash-pay.vercel.app
+```
+
+19 verificaciones contra producción, incluidos cinco ataques. Todas pasan.
+
+#### Cómo quedó construido
+
+**El grupo vive en Supabase**, no en cada teléfono:
 
 ```
-groups   (id, name, total_cents, payer_id, admin_id, split_mode, status)
-members  (group_id, person_id, name, share_cents, confirmed, joined_at)
+groups         (id, name, total_cents, payer_id, split_mode, status, schedule_id)
+members        (id, group_id, name, is_admin, share_cents, confirmed, account_index)
+member_secrets (member_id, secret_hash)   ← ningún navegador puede leerla
 ```
 
-`GroupProvider` deja de leer `localStorage` y se suscribe a esas tablas. El
-QR codifica `/join?g=<groups.id>`. El resto de las pantallas casi no cambia:
-ya leen del contexto.
+**Seguridad, probada con ataques reales y no supuesta:**
 
-#### ¿Da tiempo antes del domingo 10:00?
+- **Cualquiera con el enlace puede LEER un grupo** — para eso es una invitación.
+- **Solo el servidor puede ESCRIBIR.** La seguridad a nivel de fila compara el
+  SHA-256 de un encabezado `x-squash-token` con un hash guardado en la base.
+  El token no tiene prefijo `NEXT_PUBLIC_` y se verificó ausente de todos los
+  archivos públicos del bundle.
+- **Nadie actúa como otro.** Cada teléfono guarda un secreto; el servidor
+  compara su hash en una tabla que ningún navegador lee. Luis no puede
+  confirmar como Diego.
+- **Una confirmación ES una firma**, y solo se registra después de que la
+  firma cae en la cadena.
 
-**El flujo completo, con estado compartido real, no — no con calidad.** Son
-seis a diez horas de trabajo y pruebas en varios dispositivos, y todavía
-falta el video. Meterlo a la carrera es exactamente como se rompió `/sign`.
+**Cuentas:** un pool de 10 cuentas de testnet (`POOL_ACCOUNTS_JSON`). Quien
+crea el grupo toma el espacio 0; cada persona que entra, el siguiente. Un
+grupo admite hasta 10 personas. Se crean con `node scripts/create-pool.mjs`.
 
-Lo que sí da tiempo y se puede mostrar sin mentir:
+**Archivos del flujo:**
 
-- **QR real** que codifica el enlace del grupo. Una librería, una hora.
-- **Pantalla de administrador** con los tres modos de reparto, en un solo
-  dispositivo.
-- **En el video**, mostrar la experiencia de cada persona cambiando de
-  perfil en el mismo teléfono — y en la submission decir claro que la
-  sincronización entre dispositivos es lo siguiente.
-
-Una demo honesta de un solo dispositivo le gana a una demo "en tiempo real"
-que se cuelga frente al juez.
+```
+src/lib/split.ts            reglas del dinero — 15 tests
+src/lib/groups.ts           reglas del grupo, del lado del servidor
+src/lib/supabase.ts         cliente de lectura y cliente del servidor
+src/lib/pool.ts             el pool de cuentas
+src/lib/groupSession.ts     quién eres en este teléfono
+src/app/nuevo/              crear la cuenta
+src/app/g/[id]/             la mesa: entrar, ver, repartir, confirmar
+src/app/api/groups/         crear
+src/app/api/groups/[id]/    todas las acciones
+scripts/test-dinner.mjs     la cena completa + ataques, contra cualquier servidor
+```
 
 ### 3.2 World Selfie Check — $3,500, tres ganadores
 
