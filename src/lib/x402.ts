@@ -7,9 +7,10 @@
  * whose validator rejects anything that does not match.
  *
  * The flow:
- *   1. caller asks for work with no payment      -> we answer 402 + `accepts`
+ *   1. caller asks for work with no payment      -> we answer 402, with the
+ *      requirements in the PAYMENT-REQUIRED header
  *   2. caller builds a Hedera transfer, signs it PARTIALLY, base64s it,
- *      and retries with X-PAYMENT
+ *      and retries with PAYMENT-SIGNATURE
  *   3. we POST that to the facilitator's /verify, then /settle
  *   4. the facilitator co-signs as FEE PAYER and submits
  *

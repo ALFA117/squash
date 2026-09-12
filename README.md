@@ -28,7 +28,8 @@ works, what is written but never executed, and what has not been started.
 
 | Piece | State |
 |---|---|
-| **Split a bill at the table** — real QR, live, three split modes, everyone confirms | **done**, 19/19 against production |
+| **Split a bill at the table** — real QR, live, three split modes, everyone confirms | **done**, 20/20 against production |
+| The bill buys its settlement plan from the engine over x402 before scheduling | **done — paid on testnet, receipt shown at the table** |
 | Netting engine + exact minimum solver | **done** |
 | `POST /api/v1/net`, priced per obligation | **done**, live |
 | x402 gate, Hedera `exact` scheme | **done** |

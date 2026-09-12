@@ -151,7 +151,7 @@ Todo esto corre hoy y se puede verificar en el explorador:
 
 | Pieza | Estado |
 |---|---|
-| **Dividir una cuenta en la mesa** — QR, tiempo real, 3 modos, todos confirman | listo, en vivo, 19/19 contra producción |
+| **Dividir una cuenta en la mesa** — QR, tiempo real, 3 modos, todos confirman | listo, en vivo, 20/20 contra producción |
 | Solver de mínimo demostrable | listo |
 | `POST /api/v1/net` cobrado por obligación | listo, en vivo |
 | Puerta x402 (esquema `exact` de Hedera vía Blocky402) | listo |
@@ -300,6 +300,7 @@ juez que haga la cuenta lo nota.
 | El reparto se congela al pedir confirmaciones | ✅ reabrir abandona la transacción y borra confirmaciones |
 | Pago con el último "sí" | ✅ verificado en cadena, UI y API |
 | Recibo real | ✅ |
+| **El cálculo se compra al motor por x402** (lo que pide el track de Hedera) | ✅ al pedir confirmaciones, el servidor le paga a `/api/v1/net` vía Blocky402 antes de programar; la mesa muestra el pago con enlace a HashScan — [pago](https://hashscan.io/testnet/transaction/0.0.7162784-1789249485-560257425) → [schedule `0.0.10510675`](https://hashscan.io/testnet/schedule/0.0.10510675) |
 
 **Pruebas en cadena del flujo de la cena:**
 
@@ -314,7 +315,7 @@ juez que haga la cuenta lo nota.
 node scripts/test-dinner.mjs https://squash-pay.vercel.app
 ```
 
-19 verificaciones contra producción, incluidos cinco ataques. Todas pasan.
+20 verificaciones contra producción, incluidos cinco ataques y el pago x402 del cálculo. Todas pasan.
 
 #### Cómo quedó construido
 

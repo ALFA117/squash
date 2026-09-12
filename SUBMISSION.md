@@ -21,7 +21,7 @@ compresses the tangle to the **provable minimum** number of transfers:
 2. You get a **real QR**. Open it on a second device (or a private window) and join as someone else.
 3. Watch the first screen update **live** as people join.
 4. As admin, pick how to split: **equal parts**, **you set the amounts**, or **each enters their own**.
-5. Tap **Ask everyone to confirm**. The settlement now exists on chain, pending.
+5. Tap **Ask everyone to confirm**. The app first **pays the netting engine over x402** for the plan, then puts the settlement on chain, pending. The table shows the payment with a HashScan link.
 6. Each person taps **Yes, I pay**. The last one executes it. Open the receipt.
 
 ## Don't take our word for it
@@ -32,6 +32,7 @@ Every claim below links to the chain.
 |---|---|
 | A bill split at a table, settled only after the last "yes" | [schedule `0.0.10510230`](https://hashscan.io/testnet/schedule/0.0.10510230) — Diego −$600, Luis −$600, Rosa +$1,200 |
 | A custom split, exactly as the admin set it | [schedule `0.0.10510081`](https://hashscan.io/testnet/schedule/0.0.10510081) — Diego −$1,000, Luis −$500, Rosa +$1,500 |
+| Locking a bill **buys its plan from the engine over x402** — agent → engine, fee sponsored by Blocky402 — and only then schedules it | [x402 payment `0.0.7162784@1789249485.560257425`](https://hashscan.io/testnet/transaction/0.0.7162784-1789249485-560257425) → [schedule `0.0.10510675`](https://hashscan.io/testnet/schedule/0.0.10510675), executed |
 | An agent paid for a netting run over x402, and **spent nothing on gas** | [tx `0.0.7162784@1789008230.889484170`](https://hashscan.io/testnet/transaction/0.0.7162784-1789008230-889484170) |
 | Each run's inputs and plan are published, so anyone can recompute it | [HCS topic `0.0.10452145`](https://hashscan.io/testnet/topic/0.0.10452145) |
 
@@ -50,7 +51,9 @@ computation does not need to hold HBAR.
 
 **At the table.** Whoever paid opens the bill and is the admin. A QR carries
 the group's link; each person scans in and sees their share. The admin
-chooses the split. When it adds up to the bill exactly, confirmations open —
+chooses the split. When it adds up to the bill exactly, the app buys the
+settlement plan from the netting engine over x402, checks it adds up to the
+shares, and confirmations open —
 and the split **freezes**, because the settlement already exists on chain with
 those amounts. Changing it means reopening, which abandons the pending
 transaction and clears every confirmation. Nobody can agree to one number and
@@ -93,8 +96,9 @@ earns its keep.
    the first screen updates on its own.
 2. **The split** — switch between equal, custom and "each their own"; show it
    refusing to lock while the shares are short.
-3. **The yes** — ask for confirmations; one person signs, still pending; the
-   last signs, it executes. Open the receipt in HashScan.
+3. **The yes** — ask for confirmations; the "paid over x402" line appears —
+   open it in HashScan. One person signs, still pending; the last signs, it
+   executes. Open the schedule in HashScan.
 4. **The trip** — the sample trip's plan: fifteen obligations settle into
    three transfers, and the receipt line shows the app just paid for that
    calculation, on chain.

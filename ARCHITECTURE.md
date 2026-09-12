@@ -1,51 +1,175 @@
 # Architecture — Squash
 
-Squash is a multilateral netting engine built on Hedera, designed to solve the problem of multiple debts among group members efficiently and securely.
+Squash settles group debts in the fewest possible transfers and puts the whole
+settlement on Hedera as one transaction that only goes through once everyone
+has said yes. The app pays for its own settlement maths per use, over x402.
 
-## Core Components
+Everything runs on **Hedera testnet**. Nothing here touches real money.
 
-### 1. Multilateral Netting Engine
-The engine calculates the minimum number of transactions required to settle all debts in a group. It uses a proven solver approach to ensure efficiency, transforming complex sets of debts into a compact, optimized settlement list.
+---
 
-### 2. Atomic Settlement via Hedera Scheduled Transactions
-The project leverages Hedera's `ScheduleCreateTransaction` functionality. The entire netting result (all debits and credits) is submitted as a *single* transfer transaction.
-- **Atomicity:** The transaction remains in a pending state until every participant has signed.
-- **Unit Execution:** The moment the final signature lands, the entire plan executes as a single unit. It is impossible for only half the plan to settle; it is all-or-nothing.
+## The two flows
 
-### 3. User Authentication & Wallet Management (Privy)
-Squash replaces traditional demo-account key management with **Privy Embedded Wallets**.
-- **UX:** Users are authenticated via Privy, and the app generates a dedicated embedded wallet for them, which the application never touches directly.
-- **Security:** The app no longer holds private keys. Instead, the application requests transaction signatures from the client-side wallet, ensuring private keys never leave the user's secure context.
+| | Split a bill at the table | The sample trip |
+|---|---|---|
+| Pages | `/nuevo` → `/g/[id]` | `/join` → `/plan` → `/sign` → `/done` |
+| Who | Real people, joined by scanning a QR | Six demo friends, fixed expenses |
+| State | Supabase (Postgres + Realtime) | In the browser |
+| Plan | Bought from `/api/v1/net` over x402 | Bought from `/api/v1/net` over x402 |
+| On chain | One scheduled transfer, executes on the last "yes" | Same |
 
-### 4. Gatekeeping (x402)
-The application utilizes `x402` patterns to gate-keep access. The netting engine itself is a metered resource, requiring payment for each run, ensuring that the service remains sustainable and protected against abuse.
+Both flows buy their plan from the same metered engine, and both end with one
+scheduled transaction.
 
-## Transaction Flow
+---
 
-1. **Join:** User authenticates via Privy.
-2. **Plan:** The netting engine computes the optimal settlement plan based on input expenses.
-3. **Sign:** The app prepares the `ScheduleCreateTransaction`. Participants use their Privy embedded wallet to sign their specific transfer portion.
-4. **Settle:** Once all required signatures are gathered, the scheduled transaction executes on the Hedera network, finalizing all settlements instantly.
-
-## System Diagram
+## Split a bill at the table
 
 ```mermaid
-flowchart LR
-    U[User] --> J[Join flow / Privy auth]
-    J --> G[Group state + expenses]
-    G --> E[Netting engine<br/>src/lib/netting.ts]
-    E --> P[API /api/plan<br/>priced via x402]
-    P --> S[Plan screen]
-    S --> T[Schedule create + sign flow]
-    T --> W[Privy embedded wallets]
-    W --> H[Hedera scheduled transaction]
-    H --> D[Done screen + explorer receipt]
+sequenceDiagram
+    autonumber
+    participant A as Admin's phone
+    participant F as Friends' phones
+    participant S as Next.js server
+    participant DB as Supabase
+    participant E as /api/v1/net (x402)
+    participant B as Blocky402
+    participant H as Hedera testnet
 
-    E --> Proof[HCS proof publication]
-    Proof --> D
+    A->>S: POST /api/groups (name, total)
+    S->>DB: group + admin (pool slot 0)
+    A-->>F: QR with /g/[id]
+    F->>S: join
+    S->>DB: member + pool slot
+    DB-->>A: realtime: someone joined
+    A->>S: split mode / amounts
+    S->>DB: shares
+    DB-->>F: realtime: your share
+    A->>S: lock
+    S->>E: POST obligations (no payment)
+    E-->>S: 402 + PAYMENT-REQUIRED
+    S->>E: retry + PAYMENT-SIGNATURE (agent account)
+    E->>B: verify, settle
+    B->>H: transfer agent → engine (Blocky402 pays the fee)
+    E->>H: HCS proof of the run
+    E-->>S: transfers + x402 receipt
+    S->>H: ScheduleCreate — every transfer in one list
+    S->>DB: status locked, schedule id, receipt
+    F->>S: confirm (member secret)
+    S->>H: ScheduleSign with that member's account
+    Note over H: last signature → executes as one unit
+    S->>DB: status settled
+    DB-->>A: realtime: settled
 ```
 
-## Practical Notes
-- The UI is intentionally designed as a demo front end for a real product workflow.
-- The core product is the netting engine, not the wallet handling itself.
-- The system is structured so the business logic can be reused from any future client, not only the Next.js app.
+**Split modes.** Equal (remainder cents are handed out one at a time, so the
+shares always add back to the bill exactly), custom amounts set by the admin,
+or "cada quien lo suyo" where each person types their own. A bill cannot be
+locked until the shares add up to the total.
+
+**Why the plan is bought, not computed locally.** The netting engine is the
+product; the bill-splitting app is one of its customers. When the admin locks
+the bill, the server pays the engine over x402 before anything is scheduled,
+checks that the plan it got back adds up to the shares, and stores the payment
+receipt on the group. The table shows that receipt with a HashScan link.
+
+**Atomic settlement.** Every debit and credit goes into a single
+`TransferTransaction` wrapped in a `ScheduleCreateTransaction`. It sits pending
+until every debited account has signed. The last signature executes it as a
+unit. Nobody pays unless everybody pays — the network enforces it, not the app.
+
+---
+
+## Who holds which key — honestly
+
+This is a hackathon build on testnet, and it is **custodial**:
+
+- **Pool accounts** (`POOL_ACCOUNTS_JSON`): ten testnet accounts, one per seat
+  at the table. Their keys live on the server. When a member presses "yes", the
+  server checks their secret and signs the schedule with the account assigned
+  to that seat.
+- **Engine account** (`HEDERA_OPERATOR_*`): receives x402 payments, creates
+  schedules, pays network fees, publishes HCS proofs.
+- **Agent account** (`AGENT_*`): the customer that pays the engine over x402. It
+  is deliberately a different account; the facilitator refuses a payment to
+  yourself.
+- **Privy** is used for sign-in on the sample trip only. It does **not** sign
+  Hedera transactions — a Privy wallet is an Ethereum wallet and cannot.
+
+What changes for production is only who signs the `ScheduleSign` step: each
+person would sign `ScheduleSign` from their own Hedera wallet (HashPack or
+WalletConnect). The schedule, the netting and the x402 payment stay the same.
+
+---
+
+## Security of the shared state
+
+- **Anyone can read, only the server can write.** Row-level security allows
+  reads with the public anon key. Writes pass only when the request carries an
+  `x-squash-token` header whose SHA-256 matches a hash stored in the database
+  function `squash_is_server()`.
+- `SQUASH_WRITE_TOKEN` has no `NEXT_PUBLIC_` prefix, so it is never bundled for
+  the browser; `serverClient()` throws if it is ever called client-side.
+- **Member secrets.** Joining returns a random secret kept in the phone's
+  `localStorage`. Only its hash is stored, in `member_secrets`, a table
+  browsers cannot read. Every action is checked with a timing-safe comparison.
+- **Rules live on the server** (`src/lib/groups.ts`): only the admin changes
+  the split; nobody joins or edits once confirmations start; nobody confirms
+  for someone else; amounts are whole cents.
+
+`scripts/test-dinner.mjs` runs the whole dinner against any deployment,
+including those attacks, and fails if any of them gets through.
+
+---
+
+## The netting engine
+
+`src/lib/netting.ts`. All money is integer cents.
+
+1. Expenses expand into obligations ("Diego owes Rosa $833.34").
+2. Obligations collapse into one net balance per person.
+3. The minimum number of transfers is `n − k`, where `k` is the largest number
+   of disjoint groups whose balances sum to zero. A bitmask dynamic programme
+   finds `k` exactly for up to 15 people with a non-zero balance; above that it
+   falls back to a greedy match and says so (`optimal: false`).
+
+The sample trip compresses 15 debts into 3 transfers.
+
+---
+
+## x402 on Hedera
+
+`/api/v1/net` is priced per obligation (0.0004 ℏ each up to 10, cheaper in
+volume — `src/lib/pricing.ts`).
+
+- Unpaid call → `402` with the requirements in the `PAYMENT-REQUIRED` header
+  (x402 v2, Hedera `exact` scheme).
+- The caller (`src/lib/payingClient.ts`, built on the official `@x402/fetch`
+  and `@x402/hedera` clients) signs a partial transfer and retries with
+  `PAYMENT-SIGNATURE`.
+- The engine sends it to **Blocky402** `/verify` and `/settle`. Blocky402
+  co-signs as fee payer and submits, so the paying account needs no HBAR for gas.
+- Only after settlement does the engine run, publish a proof of the run to HCS
+  topic `0.0.10452145`, and answer with the plan and the receipt.
+
+If the facilitator is unreachable the engine answers `502` instead of doing the
+work for free.
+
+---
+
+## Code map
+
+```
+src/lib/netting.ts          the solver
+src/lib/split.ts            equal / custom / own shares, to the cent
+src/lib/groups.ts           every rule of a bill, server-side
+src/lib/payingClient.ts     the app paying the engine over x402
+src/lib/x402.ts             the engine's side of x402 (Blocky402)
+src/lib/scheduled.ts        ScheduleCreate / ScheduleSign / status
+src/lib/hcs.ts              proof of each run on HCS
+src/lib/supabase.ts         read client (browser) and write client (server)
+src/app/api/v1/net          the metered engine
+src/app/api/groups          create / join / split / lock / confirm
+src/app/api/plan, settle    the sample trip
+src/app/g/[id]              the table, live
+```

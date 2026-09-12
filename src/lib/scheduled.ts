@@ -116,10 +116,6 @@ export async function scheduleSettlement(
 }
 
 /**
- * Build a ScheduleSignTransaction and return its bytes for client-side signing.
- */
-
-/**
  * One party adds their signature. The last one triggers execution.
  *
  * The operator pays the fee for submitting the signature; the signature added

@@ -23,8 +23,8 @@ export const runtime = "nodejs";
  *   { "expenses":    [{ "id", "label", "payer", "cents", "among": [...] }] }
  *
  * Priced per obligation, not per request. With X402_ENABLED=true an unpaid
- * call is answered with 402 and the payment requirements; the caller retries
- * carrying X-PAYMENT, which is verified and settled through the Blocky402
+ * call is answered with 402 and the requirements in PAYMENT-REQUIRED; the
+ * caller retries carrying PAYMENT-SIGNATURE, verified and settled through the Blocky402
  * facilitator before any work is done.
  */
 export async function POST(request: Request) {
