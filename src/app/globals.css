@@ -1271,3 +1271,490 @@ a[class*="avatar"] {
 @supports not (animation-timeline: view()) {
   .reveal { animation-timeline: auto; }
 }
+
+/* ── split a bill: form ─────────────────────────────────────────────────── */
+
+.bill-form {
+  padding: 4px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex-grow: 1;
+}
+
+.bill-lead {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.field-help {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.money-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 50px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.money-input > span:first-child {
+  color: var(--muted);
+}
+
+.money-input input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.money-input input:focus {
+  outline: none;
+}
+
+.money-input:focus-within {
+  border-color: var(--settled);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--settled) 18%, transparent);
+}
+
+.money-input.compact {
+  height: 40px;
+  width: 128px;
+  padding: 0 10px;
+}
+
+.money-input.compact input {
+  font-size: 14.5px;
+  text-align: right;
+}
+
+.money-unit {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--owed) 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--owed) 30%, transparent);
+  color: var(--owed);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.bill-actions {
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+/* ── the room ───────────────────────────────────────────────────────────── */
+
+.room-head {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.room-pad {
+  padding: 4px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex-grow: 1;
+}
+
+.room-loading {
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.status-chip {
+  flex-shrink: 0;
+  margin-top: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+}
+
+.status-chip.status-locked {
+  color: var(--rail);
+  border-color: color-mix(in srgb, var(--rail) 40%, transparent);
+}
+
+.status-chip.status-settled {
+  color: var(--settled);
+  border-color: color-mix(in srgb, var(--settled) 40%, transparent);
+}
+
+.your-share {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+}
+
+.your-amount {
+  font-family: var(--f-mono);
+  font-size: 38px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--owed);
+  line-height: 1.1;
+}
+
+.your-amount.is-payer {
+  color: var(--settled);
+}
+
+.your-caption {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.invite-card {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+}
+
+.invite-qr {
+  width: 148px;
+  height: 148px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.invite-qr img {
+  width: 148px;
+  height: 148px;
+  image-rendering: pixelated;
+  border-radius: 6px;
+}
+
+.invite-qr-empty {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.invite-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.invite-text strong {
+  color: var(--ink);
+  font-size: 14.5px;
+}
+
+.link-button {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--settled);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.split-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mode-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mode {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-height: 64px;
+  padding: 10px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease-out,
+    background-color 180ms ease-out;
+}
+
+.mode.on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.mode:disabled {
+  cursor: progress;
+}
+
+.mode-label {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.mode-hint {
+  font-size: 11px;
+  opacity: 0.72;
+  line-height: 1.3;
+}
+
+.custom-shares .custom-row {
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: text;
+}
+
+.share-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--owed);
+  background: color-mix(in srgb, var(--owed) 6%, var(--surface));
+}
+
+.share-balance.ok {
+  color: var(--settled);
+  background: color-mix(in srgb, var(--settled) 7%, var(--surface));
+}
+
+.own-share {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.own-share-row {
+  display: flex;
+  gap: 8px;
+}
+
+.own-share-row .money-input {
+  flex: 1;
+}
+
+.btn-inline {
+  width: auto;
+  height: 50px;
+  padding: 0 20px;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+}
+
+.confirm-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.confirm-count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--f-display);
+  font-size: 21px;
+  color: var(--muted);
+}
+
+.confirm-bar {
+  display: flex;
+  gap: 5px;
+}
+
+.confirm-bar span {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--rule);
+  transition: background-color 240ms ease-out;
+}
+
+.confirm-bar span.on {
+  background: var(--settled);
+}
+
+.member-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.member-list .row {
+  gap: 11px;
+}
+
+.member-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.member-name {
+  font-size: 14.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-role {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.tick {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.6px dashed var(--rule);
+  color: var(--settled);
+}
+
+.tick.on {
+  border: none;
+  background: color-mix(in srgb, var(--settled) 12%, transparent);
+}
+
+.room-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.room-receipt {
+  align-self: center;
+  color: var(--settled);
+}
+
+.foot-hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+  text-align: center;
+}
+
+.join-view {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 24px 28px;
+}
+
+.join-title {
+  font-family: var(--f-display);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.join-sub {
+  margin: -6px 0 6px;
+  font-family: var(--f-mono);
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.join-foot {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+/* The honest pointer that replaced the decorative QR on /join. */
+.demo-note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 300px;
+  padding: 14px 16px;
+  border: 1px dashed var(--rule);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.45;
+  text-align: left;
+  text-decoration: none;
+  transition: border-color 180ms ease-out;
+}
+
+.demo-note:hover {
+  border-color: var(--settled);
+}

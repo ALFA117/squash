@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
@@ -63,17 +64,15 @@ export default function JoinScreen() {
           textAlign: "center",
         }}
       >
-        <div className="group-qr" aria-label={t("Group invitation code", "Código de invitación del grupo")}>
-          <div className="qr-grid" aria-hidden="true">
-            {Array.from({ length: 36 }).map((_, index) => (
-              <span key={index} className={index % 3 === 0 || index % 7 === 0 ? "qr-dot on" : "qr-dot"} />
-            ))}
-          </div>
-          <div className="qr-code-meta">
-            <span className="label">{t("GROUP CODE", "CÓDIGO DEL GRUPO")}</span>
-            <strong>SQ-VALLE-BRAVO</strong>
-          </div>
-        </div>
+        <Link href="/nuevo" className="demo-note">
+          <span className="label">{t("THIS IS THE SAMPLE TRIP", "ESTE ES EL VIAJE DE EJEMPLO")}</span>
+          <span>
+            {t(
+              "Want the real thing? Split a bill with your own table and get a QR everyone can scan.",
+              "¿Lo quieres de verdad? Divide una cuenta con tu mesa y obtén un QR que todos puedan escanear.",
+            )}
+          </span>
+        </Link>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7 }}>
           <span className="label">{t("ROSA INVITED YOU TO", "ROSA TE INVITÓ A")}</span>
           <span

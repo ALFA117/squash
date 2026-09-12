@@ -70,8 +70,11 @@ export default function Landing() {
         </p>
 
         <div className="lp-cta">
-          <Link href="/join" className="btn btn-dark" style={{ width: "auto", padding: "0 26px" }}>
-            {t("Enter the demo", "Entrar a la demo")}
+          <Link href="/nuevo" className="btn btn-settle" style={{ width: "auto", padding: "0 26px" }}>
+            {t("Split a bill", "Dividir una cuenta")}
+          </Link>
+          <Link href="/join" className="btn btn-ghost" style={{ width: "auto", padding: "0 22px" }}>
+            {t("See the sample trip", "Ver el viaje de ejemplo")}
           </Link>
           <a
             className="lp-link"
