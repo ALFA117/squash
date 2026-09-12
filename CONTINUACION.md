@@ -151,7 +151,7 @@ Todo esto corre hoy y se puede verificar en el explorador:
 
 | Pieza | Estado |
 |---|---|
-| **Dividir una cuenta en la mesa** — QR, tiempo real, 3 modos, todos confirman | listo, en vivo, 20/20 contra producción |
+| **Dividir una cuenta en la mesa** — QR, tiempo real, 3 modos, todos confirman | listo, en vivo, 23/23 contra producción |
 | Solver de mínimo demostrable | listo |
 | `POST /api/v1/net` cobrado por obligación | listo, en vivo |
 | Puerta x402 (esquema `exact` de Hedera vía Blocky402) | listo |
@@ -160,7 +160,7 @@ Todo esto corre hoy y se puede verificar en el explorador:
 | Prueba de cada corrida publicada en HCS | listo |
 | Liquidación atómica con Scheduled Transactions | listo, ejecuta con la última firma |
 | Portada + viaje de ejemplo | listo, en vivo |
-| Tests | **41** (solver 15, reparto 15, validación 11) |
+| Tests | **47** (solver 15, reparto 15, validación 11, moneda 6) |
 
 **Pruebas en cadena, ábrelas:**
 
@@ -300,6 +300,9 @@ juez que haga la cuenta lo nota.
 | El reparto se congela al pedir confirmaciones | ✅ reabrir abandona la transacción y borra confirmaciones |
 | Pago con el último "sí" | ✅ verificado en cadena, UI y API |
 | Recibo real | ✅ |
+| **Pesos → dólares al tipo de cambio del día** | ✅ la cuenta lleva su moneda (MXN/USD); al pedir confirmaciones se congela el tipo de cambio (open.er-api.com, respaldo ECB) y cada parte se convierte a centavos de dólar sin perder un centavo. Antes se movía 1 tinybar por centavo: $600 eran 0.0006 ℏ ≈ $0.00004 |
+| **Se liquida en dólares de verdad** | ✅ tUSD, token HTS `0.0.10511085` (2 decimales, 1 unidad = 1 centavo) — [US$88.40 movidos](https://hashscan.io/testnet/transaction/0.0.10450391-1789253509-329841529). En mainnet sería USDC |
+| **Logo real** | ✅ el del equipo (ojo en red), en encabezado, portada, favicon; paleta sacada del logo |
 | **El cálculo se compra al motor por x402** (lo que pide el track de Hedera) | ✅ al pedir confirmaciones, el servidor le paga a `/api/v1/net` vía Blocky402 antes de programar; la mesa muestra el pago con enlace a HashScan — [pago](https://hashscan.io/testnet/transaction/0.0.7162784-1789249485-560257425) → [schedule `0.0.10510675`](https://hashscan.io/testnet/schedule/0.0.10510675) |
 
 **Pruebas en cadena del flujo de la cena:**
@@ -315,7 +318,7 @@ juez que haga la cuenta lo nota.
 node scripts/test-dinner.mjs https://squash-pay.vercel.app
 ```
 
-20 verificaciones contra producción, incluidos cinco ataques y el pago x402 del cálculo. Todas pasan.
+23 verificaciones contra producción: cinco ataques, el pago x402 del cálculo, el tipo de cambio y los tUSD que se movieron en cadena. Todas pasan.
 
 #### Cómo quedó construido
 

@@ -16,7 +16,7 @@ x402 on Hedera. No API key, no subscription, no seat.
 
 **Live:** <https://squash-pay.vercel.app> — `/nuevo` splits a bill at a table, `/join` walks the sample trip.
 
-**Try it in a minute:** open `/nuevo`, create a bill, open the QR on a second device, and confirm from both.
+**Try it in a minute:** open `/nuevo`, create a bill in pesos or dollars, open the QR on a second device (or a private window), and confirm from both. The pesos are converted at today's rate and settle as tUSD, a Hedera dollar token.
 
 **Picking this up?** [CONTRIBUTING.md](CONTRIBUTING.md) gets you running in a
 minute with no credentials. [STATUS.md](STATUS.md) is the honest ledger of what
@@ -28,15 +28,16 @@ works, what is written but never executed, and what has not been started.
 
 | Piece | State |
 |---|---|
-| **Split a bill at the table** — real QR, live, three split modes, everyone confirms | **done**, 20/20 against production |
+| **Split a bill at the table** — real QR, live, three split modes, everyone confirms | **done**, 23/23 against production |
 | The bill buys its settlement plan from the engine over x402 before scheduling | **done — paid on testnet, receipt shown at the table** |
+| Pesos → dollars at today's rate, settled as tUSD (HTS, 1 unit = 1 cent) | **done** — [a $1,500 MXN split, US$88.40 moved](https://hashscan.io/testnet/transaction/0.0.10450391-1789253509-329841529) |
 | Netting engine + exact minimum solver | **done** |
 | `POST /api/v1/net`, priced per obligation | **done**, live |
 | x402 gate, Hedera `exact` scheme | **done** |
 | Agent completing a real paid request | **done — settled on testnet** |
 | HCS proof-of-run audit trail | **done — published on testnet** |
 | Scheduled Transaction atomic settlement | **done — executes on the last signature** |
-| Tests | **41** — solver, split rules, input validation |
+| Tests | **47** — solver, split rules, currency conversion, input validation |
 | Privy | sign-in only; wallet signing on Hedera is future work |
 | World Selfie Check | not attempted |
 
@@ -140,7 +141,7 @@ hand-rolled one with a bare 500 and no diagnostic.
 
 ```bash
 npm install
-npm test        # 41 tests, no network, no credentials
+npm test        # 47 tests, no network, no credentials
 npm run dev
 ```
 

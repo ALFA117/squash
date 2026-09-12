@@ -2,7 +2,9 @@
 
 Squash settles group debts in the fewest possible transfers and puts the whole
 settlement on Hedera as one transaction that only goes through once everyone
-has said yes. The app pays for its own settlement maths per use, over x402.
+has said yes. Bills in pesos are converted to US dollars at today's rate and
+settle as tUSD, an HTS token. The app pays for its own settlement maths per
+use, over x402.
 
 Everything runs on **Hedera testnet**. Nothing here touches real money.
 
@@ -46,6 +48,7 @@ sequenceDiagram
     S->>DB: shares
     DB-->>F: realtime: your share
     A->>S: lock
+    S->>S: today's MXN→USD rate, frozen; shares → US cents
     S->>E: POST obligations (no payment)
     E-->>S: 402 + PAYMENT-REQUIRED
     S->>E: retry + PAYMENT-SIGNATURE (agent account)
@@ -53,7 +56,7 @@ sequenceDiagram
     B->>H: transfer agent → engine (Blocky402 pays the fee)
     E->>H: HCS proof of the run
     E-->>S: transfers + x402 receipt
-    S->>H: ScheduleCreate — every transfer in one list
+    S->>H: ScheduleCreate — every tUSD transfer in one list
     S->>DB: status locked, schedule id, receipt
     F->>S: confirm (member secret)
     S->>H: ScheduleSign with that member's account
@@ -73,10 +76,23 @@ the bill, the server pays the engine over x402 before anything is scheduled,
 checks that the plan it got back adds up to the shares, and stores the payment
 receipt on the group. The table shows that receipt with a HashScan link.
 
+**Dollars, exactly.** A bill carries its currency. At lock time the server
+fetches today's rate (open.er-api.com; frankfurter/ECB as fallback; an error
+if both fail), freezes it on the bill with its date and source, and converts
+every share to US cents with a largest-remainder rule, so the dollar shares
+add up to the converted total and no share moves by more than a cent
+(`src/lib/money.ts`, tested). What settles is **tUSD** (`0.0.10511085`), an
+HTS fungible token with two decimals — one unit is one cent — created by
+`scripts/create-dollar-token.mjs`. On mainnet the same code points at USDC.
+Before scheduling, the treasury tops up any pool account that could come up
+short, with an ordinary token transfer.
+
 **Atomic settlement.** Every debit and credit goes into a single
-`TransferTransaction` wrapped in a `ScheduleCreateTransaction`. It sits pending
+`TransferTransaction` of tUSD wrapped in a `ScheduleCreateTransaction`. It sits pending
 until every debited account has signed. The last signature executes it as a
 unit. Nobody pays unless everybody pays — the network enforces it, not the app.
+The bill is only marked settled when the scheduled transaction's own receipt
+is `SUCCESS`; "executed" alone is not taken as "paid".
 
 ---
 
@@ -162,6 +178,8 @@ work for free.
 ```
 src/lib/netting.ts          the solver
 src/lib/split.ts            equal / custom / own shares, to the cent
+src/lib/money.ts            currencies and the one MXN→USD conversion
+src/lib/fx.ts               today's rate, two keyless sources
 src/lib/groups.ts           every rule of a bill, server-side
 src/lib/payingClient.ts     the app paying the engine over x402
 src/lib/x402.ts             the engine's side of x402 (Blocky402)

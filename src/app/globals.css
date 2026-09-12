@@ -2128,3 +2128,9 @@ a[class*="avatar"] {
 @keyframes rise {
   from { opacity: 0; transform: translateY(10px); }
 }
+
+@media (max-width: 480px) {
+  .lp-cta .btn {
+    width: 100%;
+  }
+}

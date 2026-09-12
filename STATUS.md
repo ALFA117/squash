@@ -14,7 +14,7 @@ CONTINUACION.md, section 0). Repaired and re-verified the same day. Then the
 real product flow was built: **split a bill at the table**, joined by a real
 QR, live across phones, split three ways, paid only when everyone says yes.
 
-`node scripts/test-dinner.mjs https://squash-pay.vercel.app` — 20 checks
+`node scripts/test-dinner.mjs https://squash-pay.vercel.app` — 23 checks
 against production including five attacks. All pass.
 
 ## Works today, verifiable by anyone
