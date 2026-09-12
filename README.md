@@ -38,7 +38,7 @@ works, what is written but never executed, and what has not been started.
 | HCS proof-of-run audit trail | **done — published on testnet** |
 | Scheduled Transaction atomic settlement | **done — executes on the last signature** |
 | Tests | **47** — solver, split rules, currency conversion, input validation |
-| Privy | sign-in only; wallet signing on Hedera is future work |
+| Privy | removed — it stalled the demo and signed nothing on Hedera |
 | World Selfie Check | not attempted |
 
 ---

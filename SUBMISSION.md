@@ -95,9 +95,8 @@ earns its keep.
 - The people at the table settle through **testnet accounts the app holds**,
   so it can sign when each person taps "yes". A production version gives each
   person their own wallet and never sees the key.
-- **Privy is used for sign-in on the sample trip.** Signing Hedera
-  transactions *with* a Privy wallet is not done here: it is an Ethereum key
-  that does not control a Hedera account. That is the next step, not a claim.
+- **No sign-in.** An earlier version put a Privy login in front of the sample
+  trip; it stalled the demo and signed nothing on Hedera, so it was removed.
 - The dollars are **tUSD, a test token we issued** (worth nothing, and its memo
   says so). The exchange rate is real. On mainnet the token would be USDC.
 - Everything runs on **Hedera testnet**. The build cost nothing.
@@ -118,4 +117,4 @@ earns its keep.
 ## Stack
 
 Next.js 16 · React 19 · TypeScript · Supabase (Postgres + Realtime, RLS) ·
-`@hashgraph/sdk` · HTS (tUSD) · `@x402/hedera` · Motion · Privy · Vercel · Hedera testnet.
+`@hashgraph/sdk` · HTS (tUSD) · `@x402/hedera` · Motion · three.js · Vercel · Hedera testnet.

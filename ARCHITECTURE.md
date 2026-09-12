@@ -109,8 +109,8 @@ This is a hackathon build on testnet, and it is **custodial**:
 - **Agent account** (`AGENT_*`): the customer that pays the engine over x402. It
   is deliberately a different account; the facilitator refuses a payment to
   yourself.
-- **Privy** is used for sign-in on the sample trip only. It does **not** sign
-  Hedera transactions — a Privy wallet is an Ethereum wallet and cannot.
+- **No sign-in.** Privy was removed: its login stalled the demo, and a Privy
+  wallet is an Ethereum key that cannot sign for a Hedera account anyway.
 
 What changes for production is only who signs the `ScheduleSign` step: each
 person would sign `ScheduleSign` from their own Hedera wallet (HashPack or
