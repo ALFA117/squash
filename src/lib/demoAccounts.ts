@@ -4,9 +4,10 @@
  * These exist so the settlement can move money between six DIFFERENT parties
  * instead of pretending to. The app holding everyone's key is a property of
  * the demo, not of the design — a real deployment gives each person their own
- * wallet and never sees the key. That is what the Privy work is for.
+ * wallet and never sees the key.
  *
- * Created by scripts/create-demo-accounts.mjs. The file is gitignored.
+ * Created by scripts/create-demo-accounts.mjs; the keys live in the
+ * DEMO_ACCOUNTS_JSON environment variable.
  */
 
 export interface DemoAccount {
@@ -43,13 +44,4 @@ export function accountMap(): Record<string, string> | null {
   const accounts = demoAccounts();
   if (!accounts) return null;
   return Object.fromEntries(Object.entries(accounts).map(([id, a]) => [id, a.accountId]));
-}
-
-/**
- * The ledger is in cents; Hedera moves tinybars. One cent to one tinybar keeps
- * the demo cheap and the arithmetic legible — $2,040.00 settles as 0.00204 ℏ.
- * A real deployment would settle in a stablecoin at its own decimals.
- */
-export function centsToTinybars(cents: number): number {
-  return cents;
 }

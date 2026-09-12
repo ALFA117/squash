@@ -44,16 +44,72 @@ async function client() {
 }
 
 /**
- * Build the whole plan as one scheduled transfer.
+ * The dollar that settles: an HTS token with two decimals, so one unit is one
+ * US cent. tUSD on testnet (scripts/create-dollar-token.mjs); on mainnet the
+ * same id slot takes USDC. Without it there is nothing honest to settle in.
+ */
+export function settlementToken(): string {
+  const id = process.env.SETTLEMENT_TOKEN_ID?.trim();
+  if (!id) throw new Error("SETTLEMENT_TOKEN_ID is not set — run scripts/create-dollar-token.mjs");
+  return id;
+}
+
+const MIRROR =
+  process.env.HEDERA_NETWORK === "mainnet"
+    ? "https://mainnet.mirrornode.hedera.com"
+    : "https://testnet.mirrornode.hedera.com";
+
+/** Test dollars an account holds, per the mirror node (a few seconds behind). */
+async function tokenBalance(accountId: string, tokenId: string): Promise<number> {
+  const res = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/tokens?token.id=${tokenId}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) return 0;
+  const data = (await res.json()) as { tokens?: { balance: number }[] };
+  return data.tokens?.[0]?.balance ?? 0;
+}
+
+const REFILL_CENTS = 2_000_000; // $20,000
+const MARGIN_CENTS = 1_000_000; // covers a settlement the mirror has not seen yet
+
+/**
+ * Make sure every payer can cover what they are about to owe.
  *
- * `rate` converts the ledger's cents into tinybars. In a real deployment the
- * settlement leg would be a stablecoin (an HTS token) rather than HBAR, and
- * this is where that swap happens — the atomicity argument is identical.
+ * The pool accounts are shared test wallets; money flows to whoever creates
+ * bills, so the others drain. Before scheduling, the treasury refills any
+ * account that could come up short — an ordinary, visible token transfer.
+ * Better now than a schedule that executes on the last "yes" and fails.
+ */
+async function topUp(
+  c: import("@hashgraph/sdk").Client,
+  tokenId: string,
+  needs: Map<string, number>,
+): Promise<void> {
+  const { TransferTransaction } = await import("@hashgraph/sdk");
+  const treasury = process.env.HEDERA_OPERATOR_ID!;
+  const tx = new TransferTransaction();
+  let total = 0;
+  for (const [accountId, need] of needs) {
+    const have = await tokenBalance(accountId, tokenId);
+    if (have - need >= MARGIN_CENTS) continue;
+    const amount = need + REFILL_CENTS - have;
+    tx.addTokenTransfer(tokenId, accountId, amount);
+    total += amount;
+  }
+  if (total === 0) return;
+  tx.addTokenTransfer(tokenId, treasury, -total);
+  await tx.execute(c).then((r) => r.getReceipt(c));
+}
+
+/**
+ * Build the whole plan as one scheduled transfer of dollars.
+ *
+ * `transfers` are in US cents, which is exactly the token's smallest unit, so
+ * there is no rate here: a bill is converted to dollars before it arrives.
  */
 export async function scheduleSettlement(
   transfers: Transfer[],
   accounts: AccountMap,
-  rate: (cents: number) => number,
   /**
    * Identifies this settlement attempt. The same plan produces a byte-identical
    * transaction every time, and Hedera refuses to create one that duplicates a
@@ -77,21 +133,32 @@ export async function scheduleSettlement(
     throw new Error(`No Hedera account mapped for: ${[...new Set(missing)].join(", ")}`);
   }
 
-  const { AccountId, Hbar, ScheduleCreateTransaction, TransferTransaction } = await import(
-    "@hashgraph/sdk"
-  );
+  for (const t of transfers) {
+    if (!Number.isSafeInteger(t.cents) || t.cents <= 0) throw new Error("Transfers must be whole, positive cents");
+  }
+
+  const { AccountId, ScheduleCreateTransaction, TransferTransaction } = await import("@hashgraph/sdk");
+  const tokenId = settlementToken();
+
+  // One entry per account: what it sends, net of what it receives.
+  const net = new Map<string, number>();
+  for (const t of transfers) {
+    net.set(accounts[t.from], (net.get(accounts[t.from]) ?? 0) - t.cents);
+    net.set(accounts[t.to], (net.get(accounts[t.to]) ?? 0) + t.cents);
+  }
 
   const inner = new TransferTransaction();
-  for (const t of transfers) {
-    const tinybars = rate(t.cents);
-    inner.addHbarTransfer(AccountId.fromString(accounts[t.from]), Hbar.fromTinybars(-tinybars));
-    inner.addHbarTransfer(AccountId.fromString(accounts[t.to]), Hbar.fromTinybars(tinybars));
+  for (const [accountId, amount] of net) {
+    if (amount !== 0) inner.addTokenTransfer(tokenId, AccountId.fromString(accountId), amount);
   }
 
   const awaiting = [...new Set(transfers.map((t) => t.from))];
   const c = await client();
 
   try {
+    const needs = new Map([...net].filter(([, a]) => a < 0).map(([id, a]) => [id, -a]));
+    await topUp(c, tokenId, needs);
+
     const receipt = await new ScheduleCreateTransaction()
       .setScheduledTransaction(inner)
       .setScheduleMemo(`Squash settlement · ${transfers.length} transfers · ${nonce}`)
@@ -146,8 +213,28 @@ export async function scheduleStatus(scheduleId: string) {
   const c = await client();
   try {
     const info = await new ScheduleInfoQuery().setScheduleId(scheduleId).execute(c);
+    const executed = info.executed !== null;
+
+    // "Executed" only means the last signature arrived. Whether the money
+    // actually moved is the scheduled transaction's own result.
+    let result: string | undefined;
+    if (executed && info.scheduledTransactionId) {
+      const { TransactionReceiptQuery } = await import("@hashgraph/sdk");
+      try {
+        const receipt = await new TransactionReceiptQuery()
+          .setTransactionId(info.scheduledTransactionId)
+          .execute(c);
+        result = receipt.status.toString();
+      } catch (e) {
+        const status = (e as { status?: { toString(): string } }).status;
+        result = status ? status.toString() : "UNKNOWN";
+      }
+    }
+
     return {
-      executed: info.executed !== null,
+      executed,
+      result,
+      succeeded: executed && (result === undefined || result === "SUCCESS"),
       executedAt: info.executed?.toDate().toISOString(),
       deleted: info.deleted !== null,
       memo: info.scheduleMemo,

@@ -29,8 +29,8 @@ const money = (c) => `$${(c / 100).toFixed(2)}`;
 
 console.log("\n── the dinner ───────────────────────────────────────────────");
 
-const created = await call("/api/groups", { adminName: "Rosa", groupName: "Cena del viernes", totalCents: 250_000 });
-check("Rosa opens a $2,500 bill", created.status === 201, `status ${created.status}`);
+const created = await call("/api/groups", { adminName: "Rosa", groupName: "Cena del viernes", totalCents: 250_000, currency: "MXN" });
+check("Rosa opens a $2,500 MXN bill", created.status === 201, `status ${created.status}`);
 const { groupId, memberId: rosaId, secret: rosaSecret } = created.data;
 const rosa = { memberId: rosaId, secret: rosaSecret };
 
@@ -85,6 +85,11 @@ const locked = await call(`/api/groups/${groupId}`, { action: "lock", ...rosa })
 check("Rosa asks for confirmations — settlement goes on chain", locked.status === 200, locked.data.scheduleId ?? locked.data.error);
 const scheduleId = locked.data.scheduleId;
 const planReceipt = locked.data.planReceipt;
+const rate = locked.data.rate?.usdPerUnit;
+check("pesos are converted at today's real rate", rate > 0.03 && rate < 0.12, `1 MXN = ${rate} USD, ${locked.data.rate?.source} ${locked.data.rate?.asOf}`);
+const usd = locked.data.usdCents ?? {};
+const usdTotal = Object.values(usd).reduce((a, b) => a + b, 0);
+check("the dollar shares add up to the converted bill", usdTotal === Math.round(250_000 * rate), `${money(usdTotal)} USD`);
 check("the plan was bought from the engine over x402", /^0\.0\.\d+@\d+\.\d+$/.test(planReceipt ?? ""), planReceipt ?? "no receipt");
 
 const late = await call(`/api/groups/${groupId}`, { action: "join", name: "Late Larry" });
@@ -101,6 +106,22 @@ check("Luis signs — it executes", l.status === 200 && l.data.executed === true
 
 g = (await call(`/api/groups/${groupId}`)).data;
 check("the group is settled", g.group.status === "settled");
+
+// What actually moved: read the executed transaction off the mirror node.
+const MIRROR = "https://testnet.mirrornode.hedera.com/api/v1";
+let moved = null;
+for (let i = 0; i < 12 && !moved; i++) {
+  await new Promise((r) => setTimeout(r, 2500));
+  const sched = await fetch(`${MIRROR}/schedules/${scheduleId}`).then((r) => r.json());
+  if (!sched.executed_timestamp) continue;
+  const txs = await fetch(`${MIRROR}/transactions?timestamp=${sched.executed_timestamp}`).then((r) => r.json());
+  moved = txs.transactions?.[0];
+}
+const tokenMoves = (moved?.token_transfers ?? []).filter((t) => t.token_id === g.group.settle_token);
+const debited = -tokenMoves.filter((t) => t.amount < 0).reduce((a, t) => a + t.amount, 0);
+const owedUsd = g.members.filter((m) => m.id !== g.group.payer_id).reduce((a, m) => a + m.settle_usd_cents, 0);
+check("on chain it moved dollars (tUSD), exactly what was confirmed", moved?.result === "SUCCESS" && debited === owedUsd && debited > 0,
+  `${moved?.result ?? "not found"} · ${money(debited)} tUSD of token ${g.group.settle_token}`);
 
 console.log(`\n  group     ${BASE}/g/${groupId}`);
 console.log(`  schedule  https://hashscan.io/testnet/schedule/${scheduleId}`);

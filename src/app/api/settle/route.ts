@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { accountMap, centsToTinybars, demoAccounts } from "@/lib/demoAccounts";
+import { accountMap, demoAccounts } from "@/lib/demoAccounts";
+import { usdRate } from "@/lib/fx";
+import { toUsdCents } from "@/lib/money";
 import { fetchPaidPlan } from "@/lib/payingClient";
 import { VALLE_DE_BRAVO } from "@/lib/sample";
 import { validateExpenses } from "@/lib/validateExpenses";
@@ -51,12 +53,25 @@ export async function POST(request: Request) {
     const plan = await fetchPaidPlan(engineUrl, { expenses: checked.expenses });
     const transfers = plan.transfers as Transfer[];
 
-    const schedule = await scheduleSettlement(transfers, accounts, centsToTinybars, nonce);
+    // The trip is in pesos; what settles is dollars. Convert the plan once,
+    // at today's rate, keeping its total exact.
+    const rate = await usdRate("MXN");
+    const usd = toUsdCents(
+      transfers.map((t, i) => ({ id: String(i), cents: t.cents })),
+      rate.usdPerUnit,
+    );
+    const usdTransfers = transfers
+      .map((t, i) => ({ ...t, cents: usd.get(String(i)) ?? 0 }))
+      .filter((t) => t.cents > 0);
+
+    const schedule = await scheduleSettlement(usdTransfers, accounts, nonce);
 
     return NextResponse.json({
       scheduleId: schedule.scheduleId,
       awaiting: schedule.awaiting,
       transfers,
+      usdTransfers,
+      rate,
       accounts,
     });
   } catch (e) {

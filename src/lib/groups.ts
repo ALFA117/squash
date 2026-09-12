@@ -1,9 +1,10 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { centsToTinybars } from "./demoAccounts";
+import { usdRate } from "./fx";
+import { isCurrency, toUsdCents, type Currency } from "./money";
 import type { Transfer } from "./netting";
 import { fetchPaidPlan } from "./payingClient";
 import { pool, poolSize } from "./pool";
-import { scheduleSettlement, scheduleStatus, signSchedule } from "./scheduled";
+import { scheduleSettlement, scheduleStatus, settlementToken, signSchedule } from "./scheduled";
 import { checkShares, equalShares, transfersToPayer, type SplitMode } from "./split";
 import { serverClient } from "./supabase";
 
@@ -34,6 +35,14 @@ export interface GroupRow {
   schedule_id: string | null;
   /** The Hedera transaction that paid the engine for this plan, over x402. */
   plan_receipt: string | null;
+  /** The currency the bill was paid in. Shares are in its cents. */
+  currency: Currency;
+  /** Frozen when confirmations start: US dollars per unit of `currency`. */
+  fx_usd_per_unit: number | null;
+  fx_as_of: string | null;
+  fx_source: string | null;
+  /** The HTS token the settlement moves (tUSD on testnet). */
+  settle_token: string | null;
   created_at: string;
 }
 
@@ -43,6 +52,8 @@ export interface MemberRow {
   name: string;
   is_admin: boolean;
   share_cents: number | null;
+  /** The share in US cents, fixed when confirmations start. What they pay. */
+  settle_usd_cents: number | null;
   confirmed: boolean;
   account_index: number;
   joined_at: string;
@@ -153,14 +164,17 @@ export async function createGroup(input: {
   adminName?: unknown;
   groupName?: unknown;
   totalCents?: unknown;
+  currency?: unknown;
 }) {
   if (poolSize() === 0) throw new GroupError("Settlement accounts are not configured", 503);
 
   const adminName = cleanName(input.adminName, 40);
   const groupName = cleanName(input.groupName, 60);
   const total = input.totalCents;
+  const currency = input.currency ?? "MXN";
+  if (!isCurrency(currency)) throw new GroupError("The currency must be MXN or USD");
   if (!Number.isInteger(total) || (total as number) < 1 || (total as number) > 10_000_000) {
-    throw new GroupError("The total must be between $0.01 and $100,000.00");
+    throw new GroupError(`The total must be between $0.01 and $100,000.00 ${currency}`);
   }
 
   const db = serverClient();
@@ -172,6 +186,7 @@ export async function createGroup(input: {
     id: groupId,
     name: groupName,
     total_cents: total,
+    currency,
     payer_id: memberId,
     split_mode: "equal",
     status: "open",
@@ -348,8 +363,28 @@ export async function lockGroup(
     );
   }
 
-  const owed = transfersToPayer(group.payer_id, members);
-  if (owed.length === 0) throw new GroupError("Nobody owes anything — there is nothing to settle");
+  if (!transfersToPayer(group.payer_id, members).length) {
+    throw new GroupError("Nobody owes anything — there is nothing to settle");
+  }
+
+  // Convert to the dollars that will actually move, at today's rate, once.
+  // The rate is frozen on the bill with its date and source, so what each
+  // person confirms is the exact dollar amount that settles.
+  let rate;
+  try {
+    rate = await usdRate(group.currency);
+  } catch (e) {
+    throw new GroupError((e as Error).message, 502);
+  }
+  const usd = toUsdCents(
+    members.map((m) => ({ id: m.id, cents: m.share_cents ?? 0 })),
+    rate.usdPerUnit,
+  );
+  const inDollars = members.map((m) => ({ id: m.id, share_cents: usd.get(m.id) ?? 0 }));
+  const owed = transfersToPayer(group.payer_id, inDollars);
+  if (owed.length === 0) {
+    throw new GroupError("Every share rounds to less than a US cent — there is nothing to settle");
+  }
 
   // Buy the settlement plan from the metered engine, over x402, the same way
   // any other customer would. For one bill with one payer the plan is simply
@@ -374,30 +409,46 @@ export async function lockGroup(
     accountMap[m.id] = acct.accountId;
   }
 
-  const { scheduleId } = await scheduleSettlement(
-    transfers,
-    accountMap,
-    centsToTinybars,
-    `${groupId}-${Date.now().toString(36)}`,
-  );
+  let scheduleId: string;
+  try {
+    ({ scheduleId } = await scheduleSettlement(transfers, accountMap, `${groupId}-${Date.now().toString(36)}`));
+  } catch (e) {
+    throw new GroupError(`The settlement could not be put on chain: ${(e as Error).message}`, 502);
+  }
 
   const db = serverClient();
   // The payer receives, and anyone whose share is zero owes nothing: neither
   // has anything to sign, so both count as confirmed from the start.
   const debtors = new Set(transfers.map((t) => t.from));
   for (const m of members) {
-    const { error } = await db.from("members").update({ confirmed: !debtors.has(m.id) }).eq("id", m.id);
+    const { error } = await db
+      .from("members")
+      .update({ confirmed: !debtors.has(m.id), settle_usd_cents: usd.get(m.id) ?? 0 })
+      .eq("id", m.id);
     if (error) throw new GroupError(error.message, 502);
   }
 
   const planReceipt = plan.paid && typeof plan.receipt === "string" ? plan.receipt : null;
   const { error } = await db
     .from("groups")
-    .update({ status: "locked", schedule_id: scheduleId, plan_receipt: planReceipt })
+    .update({
+      status: "locked",
+      schedule_id: scheduleId,
+      plan_receipt: planReceipt,
+      fx_usd_per_unit: rate.usdPerUnit,
+      fx_as_of: rate.asOf,
+      fx_source: rate.source,
+      settle_token: settlementToken(),
+    })
     .eq("id", groupId);
   if (error) throw new GroupError(error.message, 502);
 
-  return { scheduleId, planReceipt };
+  return {
+    scheduleId,
+    planReceipt,
+    rate,
+    usdCents: Object.fromEntries(usd),
+  };
 }
 
 /** Throw the pending settlement away and let the split change again. */
@@ -412,11 +463,22 @@ export async function reopenGroup(groupId: string, memberId: string, secret: str
   // execute without every signature — which is the whole guarantee.
   const { error } = await db
     .from("groups")
-    .update({ status: "open", schedule_id: null, plan_receipt: null })
+    .update({
+      status: "open",
+      schedule_id: null,
+      plan_receipt: null,
+      fx_usd_per_unit: null,
+      fx_as_of: null,
+      fx_source: null,
+      settle_token: null,
+    })
     .eq("id", groupId);
   if (error) throw new GroupError(error.message, 502);
 
-  const { error: e } = await db.from("members").update({ confirmed: false }).eq("group_id", groupId);
+  const { error: e } = await db
+    .from("members")
+    .update({ confirmed: false, settle_usd_cents: null })
+    .eq("group_id", groupId);
   if (e) throw new GroupError(e.message, 502);
 }
 
@@ -454,6 +516,14 @@ export async function confirmShare(groupId: string, memberId: string, secret: st
   if (error) throw new GroupError(error.message, 502);
 
   const status = await scheduleStatus(group.schedule_id);
+  if (status.executed && !status.succeeded) {
+    // The last signature arrived but the transfer itself failed. Nobody paid —
+    // the transaction is all-or-nothing — so say so, and let the admin reopen.
+    throw new GroupError(
+      `Everyone confirmed, but the network rejected the payment (${status.result}). Nobody was charged — the admin can reopen and try again.`,
+      502,
+    );
+  }
   if (status.executed) {
     const { error: gErr } = await db.from("groups").update({ status: "settled" }).eq("id", groupId);
     if (gErr) throw new GroupError(gErr.message, 502);
