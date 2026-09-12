@@ -8,6 +8,99 @@ el jueves 10 a las 21:59 y lo cierra Alfa, no tú.
 
 ---
 
+## 0. Auditoría — 12 de septiembre · LEE ESTO PRIMERO
+
+Entre el 10 y el 11 trabajaron otras IAs sobre el repo: 7 commits y 12
+archivos sin commitear. Esta es la revisión de lo que dejaron. Todo lo de
+abajo está verificado — contra el sitio en vivo y contra la cadena — no
+deducido.
+
+### Lo que está sano
+
+- 15/15 tests, build de producción limpio, TypeScript sin errores.
+- Ninguna llave versionada. Ningún hash inventado en el código.
+- **El motor, el cobro x402, la prueba en HCS y la liquidación funcionan.**
+  Probado hoy en producción por la ruta original: schedule
+  [`0.0.10509320`](https://hashscan.io/testnet/schedule/0.0.10509320),
+  pendiente con la 1ª firma, pendiente con la 2ª, **ejecutada con la 3ª**.
+- Interfaz en inglés y español. Útil para los jueces; se queda.
+
+### 🔴 Crítico — rompe la demo
+
+**1. La pantalla de firmas está muerta en producción.**
+
+Abre <https://squash-pay.vercel.app/sign>: "0 de 3 confirmaron", Diego y
+Luis en "Firmando…" para siempre, y el botón **deshabilitado**. El 9 de
+septiembre esto liquidaba de verdad y se verificó al tinybar.
+
+Qué pasó: `/sign` se reconectó a una ruta nueva de firma con Privy
+(`/api/settle/sign/prepare` y `/submit`) que **no puede funcionar**, por
+cuatro razones independientes — basta cualquiera para que falle:
+
+| | El problema |
+|---|---|
+| Llave equivocada | La cartera de Privy es una llave de Ethereum nueva. **No controla** la cuenta de Hedera del deudor (`0.0.10453366`, creada con otra llave). Su firma nunca satisface el schedule. |
+| Formato equivocado | `wallet.sign()` hace un `personal_sign` de Ethereum: antepone el prefijo `"\x19Ethereum Signed Message"` y devuelve 65 bytes. Hedera espera la firma cruda de 64 bytes. |
+| Carga equivocada | Firma `tx.toBytes()` — la transacción serializada completa. En Hedera se firman los *body bytes* de cada nodo. |
+| Persona equivocada | El ciclo firma "por Diego" y "por Luis" **con la cartera del usuario que inició sesión**. Una sola persona firmando por tres. |
+
+**El arreglo es chico y de bajo riesgo:** la ruta que sí funciona
+(`/api/settle/sign` → `signSchedule`) sigue en el código y sigue viva en
+producción. Hay que volver a apuntar `/sign` hacia ella. Es la prioridad cero.
+
+**2. `SUBMISSION.md` le dice a los jueces cosas que el código no hace.**
+
+Afirma *"Participants sign through Privy"* y pide mostrar *"the real-time
+signature state"*. Un juez que lo pruebe ve la pantalla colgada. Una
+afirmación falsa en la submission es peor que una función que falta: la
+función que falta se nota, la afirmación falsa se castiga. Hay que
+corregirla antes de entregar.
+
+### 🟠 Serio
+
+**3. El "código QR" de `/join` es decorativo.** Es una cuadrícula de 6×6
+puntos donde `index % 3 === 0 || index % 7 === 0` decide cuáles se pintan.
+No codifica nada y no se puede escanear, pero tiene
+`aria-label="Código de invitación del grupo"`: se le presenta como real a
+quien usa lector de pantalla. Parece función y no lo es.
+
+**4. El estado del grupo vive en `localStorage`.** `GroupProvider` lee y
+escribe `localStorage`, que es **por navegador y por dispositivo**. Dos
+teléfonos no se ven entre sí. "Ver en tiempo real quién eres y cuánto debes"
+es imposible con esta arquitectura: cada teléfono tiene su propia copia
+aislada. La sección 3.1b dice qué hace falta.
+
+### 🟡 Menor
+
+- `public/logo.svg` existe en local pero `public/` **nunca se commiteó** →
+  404 en producción, error visible en consola.
+- El App ID de Privy está en `.env.local` **y además** escrito a mano como
+  respaldo en `Providers.tsx`. Es un ID público, no es fuga, pero el respaldo
+  sobra.
+- **12 archivos, 943 líneas sin commitear.** Trabajo que existe en esta
+  máquina y no en el repo ni en producción.
+
+### Sobre Privy, sin rodeos
+
+Firmar transacciones de Hedera con una cartera de Privy **no es un ajuste,
+es un proyecto**: habría que crear cada cuenta de Hedera con la llave pública
+de la cartera del usuario, y firmar los *body bytes* crudos sin el prefijo
+de Ethereum. No cabe antes del domingo 10:00 y no hay que intentarlo.
+
+Lo que sí funciona y sí vale: **Privy para iniciar sesión** — identidad sin
+contraseña ni frase semilla. Eso se muestra honestamente. La firma se queda
+en las cuentas de demo, dicho con todas sus letras.
+
+### Orden para lo que queda
+
+1. **Arreglar `/sign`** — volver a la ruta que funciona. *(30 min)*
+2. **Commitear** el trabajo pendiente, subir `public/`, redeploy.
+3. **Corregir `SUBMISSION.md`** para que no afirme nada que no pase.
+4. **Grabar el video.** Sin video no existimos.
+5. *Solo si sobra tiempo:* el flujo de la sección 3.1b.
+
+---
+
 ## 1. Qué es Squash
 
 Un motor de compensación multilateral. Le das N deudas cruzadas entre N
@@ -63,11 +156,20 @@ Todo esto corre hoy y se puede verificar en el explorador:
 
 Tres cosas, en este orden. Si algo se atrasa, se corta de abajo hacia arriba.
 
-### 3.1 Privy — $2,500 · lo más importante
+### 3.1 Privy — $2,500 · para iniciar sesión, no para firmar
+
+> **Actualizado el 12 de septiembre.** Esta sección decía que Privy debía
+> reemplazar las llaves para firmar. Se intentó, y rompió `/sign` en
+> producción — la sección 0 explica las cuatro razones. **Privy se usa para
+> identidad** (entrar sin contraseña ni frase semilla), y eso sí funciona.
+> Firmar en Hedera con una cartera de Privy queda para después del
+> hackathon.
 
 Es lo único que sigue teniendo forma de demo: **la app tiene las llaves de las
 seis personas**. Eso está bien para enseñar el mecanismo y está mal para un
-producto. Privy lo reemplaza con carteras por usuario que la app nunca ve.
+producto. A futuro, Privy lo reemplaza con carteras por usuario que la app
+nunca ve — pero eso exige crear cada cuenta de Hedera con la llave pública de
+la cartera, y no cabe antes de la entrega.
 
 Qué pide el track *Best financial flow*: integrar Privy como parte central,
 crear o usar al menos una cartera Privy, completar un flujo financiero real, y
@@ -90,6 +192,125 @@ existe, pero es para el juez, no para la señora que dividió la casa de Valle.
 
 Necesitas un **App ID** de dashboard.privy.io. Es gratis y el App ID es
 público; el App Secret no se necesita del lado del cliente.
+
+### 3.1b El flujo que queremos — caso de uso real
+
+Esta sección reemplaza la versión anterior, que afirmaba que
+`GroupProvider` "sincroniza" el estado. No lo hace: guarda en `localStorage`.
+
+#### El caso
+
+Seis amigos salen a cenar. La cuenta es de **$2,500**. El restaurante no
+divide cuentas, así que **paga una sola persona** — digamos Rosa, con su
+tarjeta. Ahora los otros cinco le deben a Rosa, y hay que decidir cuánto
+cada quien.
+
+#### El recorrido
+
+**1. El administrador crea el grupo y pone el total.**
+Rosa abre la app, crea "Cena del viernes", pone **$2,500** y queda como
+administradora — y como la que pagó.
+
+**2. La app genera un QR del grupo.**
+Rosa lo enseña en la mesa. El QR es un **enlace real**, por ejemplo
+`squash-pay.vercel.app/join?g=<id-del-grupo>` — no un dibujo. Quien lo
+escanea cae directo en ese grupo.
+
+**3. Cada quien escanea y entra.**
+Al entrar, cada persona se identifica (Privy: correo o Google, sin
+contraseña) y queda como miembro. La lista de Rosa se va llenando **en
+vivo**: ve llegar a Diego, a Luis, a Mariana.
+
+**4. Cada persona ve quién es y cuánto debe — en tiempo real.**
+Su nombre, el total del grupo y su parte. Si Rosa cambia el reparto, la
+cifra cambia en todos los teléfonos al momento.
+
+**5. El administrador elige cómo se divide.** Tres botones:
+
+| Modo | Qué hace |
+|---|---|
+| **Partes iguales** | $2,500 ÷ 6 = $416.67 c/u. Los centavos que no dividen exacto se reparten uno por uno — el solver ya lo hace, hay test. |
+| **Montos por persona** | Rosa escribe cuánto le toca a cada quien. La app no deja confirmar hasta que la suma dé exactamente $2,500. |
+| **Cada quien lo suyo** | Cada persona escribe lo que consumió desde su propio teléfono. Rosa ve si falta o sobra contra el total. |
+
+**6. Todos confirman.**
+Cada persona ve su monto y le da **"Sí, pago $416.67"**. Rosa ve el avance:
+*4 de 5 confirmaron*. Si alguien no está de acuerdo, no confirma y se
+corrige el reparto.
+
+**7. Con el último "sí", se paga.**
+Aquí entra lo que **ya funciona**: una sola transacción programada en
+Hedera que no se ejecuta hasta que todos firmaron. Con la última
+confirmación, los cinco pagos a Rosa salen juntos. Nadie paga a medias.
+
+**8. Recibo.**
+Cada quien ve "Todos en cero" y el enlace al comprobante real en el
+explorador.
+
+#### Una aclaración honesta sobre el pitch
+
+En el caso de la cena **hay una sola acreedora**: todos le pagan a Rosa, y
+eso ya es el mínimo — cinco transferencias. **El motor no comprime nada
+aquí.** La compresión aparece cuando **varias personas pagan cosas
+distintas a lo largo de un viaje**: Rosa la casa, Mariana la cena, Luis la
+gasolina. Ahí las deudas se cruzan y 15 se vuelven 3.
+
+El producto tiene dos caras y conviene contarlo así: **la cena es la puerta
+de entrada** — fácil de entender, todos la han vivido — y **el viaje es
+donde Squash brilla**. No vendas la cena como ejemplo de compresión; un
+juez que haga la cuenta lo nota.
+
+#### Qué hay y qué falta para este flujo
+
+| Paso | Estado |
+|---|---|
+| Dividir en partes iguales, con centavos exactos | ✅ existe (`netting.ts`) |
+| Montos por persona | 🟡 `/expense` los captura, falta el modo administrador |
+| Confirmación de todos antes de pagar | ✅ existe (Scheduled Transactions, probado) |
+| Pago atómico con la última firma | ✅ existe, verificado en cadena |
+| Recibo real | ✅ existe |
+| **QR real con enlace al grupo** | ❌ el actual es decorativo |
+| **Estado compartido entre teléfonos** | ❌ `localStorage`, cada teléfono aislado |
+| **"Tiempo real"** | ❌ depende del punto anterior |
+| Rol de administrador | ❌ no existe |
+| "Cada quien lo suyo" | ❌ no existe |
+
+#### La pieza que falta es una sola: estado compartido
+
+Casi todo lo que falta depende de lo mismo: **que el grupo viva en un
+servidor y no en cada teléfono.** Sin eso no hay QR que sirva (quien lo
+escanea no encuentra el grupo), no hay tiempo real, y no hay administrador
+cuya decisión vean los demás.
+
+La opción natural es **Supabase**: base de datos con suscripciones en
+tiempo real y capa gratis. Esquema mínimo:
+
+```
+groups   (id, name, total_cents, payer_id, admin_id, split_mode, status)
+members  (group_id, person_id, name, share_cents, confirmed, joined_at)
+```
+
+`GroupProvider` deja de leer `localStorage` y se suscribe a esas tablas. El
+QR codifica `/join?g=<groups.id>`. El resto de las pantallas casi no cambia:
+ya leen del contexto.
+
+#### ¿Da tiempo antes del domingo 10:00?
+
+**El flujo completo, con estado compartido real, no — no con calidad.** Son
+seis a diez horas de trabajo y pruebas en varios dispositivos, y todavía
+falta el video. Meterlo a la carrera es exactamente como se rompió `/sign`.
+
+Lo que sí da tiempo y se puede mostrar sin mentir:
+
+- **QR real** que codifica el enlace del grupo. Una librería, una hora.
+- **Pantalla de administrador** con los tres modos de reparto, en un solo
+  dispositivo.
+- **En el video**, mostrar la experiencia de cada persona cambiando de
+  perfil en el mismo teléfono — y en la submission decir claro que la
+  sincronización entre dispositivos es lo siguiente.
+
+Una demo honesta de un solo dispositivo le gana a una demo "en tiempo real"
+que se cuelga frente al juez.
 
 ### 3.2 World Selfie Check — $3,500, tres ganadores
 
