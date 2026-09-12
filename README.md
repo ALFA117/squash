@@ -14,7 +14,9 @@ x402 on Hedera. No API key, no subscription, no seat.
 15 obligations between 6 people  →  3 transfers  ·  80% fewer, 80% less in fees
 ```
 
-**Live:** <https://squash-pay.vercel.app> — `/` is the group, `/plan` is the settlement.
+**Live:** <https://squash-pay.vercel.app> — `/nuevo` splits a bill at a table, `/join` walks the sample trip.
+
+**Try it in a minute:** open `/nuevo`, create a bill, open the QR on a second device, and confirm from both.
 
 **Picking this up?** [CONTRIBUTING.md](CONTRIBUTING.md) gets you running in a
 minute with no credentials. [STATUS.md](STATUS.md) is the honest ledger of what
@@ -137,12 +139,15 @@ hand-rolled one with a bare 500 and no diagnostic.
 
 ```bash
 npm install
-npm test        # 15 tests, no network, no credentials
+npm test        # 41 tests, no network, no credentials
 npm run dev
 ```
 
-No configuration is needed — with no `.env.local` the engine answers for free
-and every screen works. Credentials are only for exercising the paid path, and
+The sample trip needs no configuration — with no `.env.local` the engine
+answers for free and those screens work. **Splitting a bill at a table needs
+Supabase** (shared state across phones) and a pool of testnet accounts; without
+them `/nuevo` says so rather than failing silently. Credentials are for that and
+for the paid path, and
 [CONTRIBUTING.md](CONTRIBUTING.md) walks through getting your own in about five
 minutes. Everything runs on Hedera **testnet**, which is what the prize rules
 allow and what keeps the build cost at zero.
@@ -154,10 +159,14 @@ allow and what keeps the build cost at zero.
 ```
 src/lib/netting.ts        the solver — the whole product is in here
 src/lib/netting.test.ts   15 tests, including the minimality proof cases
+src/lib/split.ts          the money rules for one bill — 15 tests
+src/lib/groups.ts         the rules of a table, enforced server-side
+src/app/nuevo/            start a bill
+src/app/g/[id]/           the table: join, split, confirm — what the QR opens
 src/lib/pricing.ts        metered per-obligation quote
 src/lib/sample.ts         the demo group
 src/app/api/v1/net/       the metered endpoint
-src/app/page.tsx          group ledger
+src/app/page.tsx          the landing
 src/lib/x402.ts           the 402 challenge and the facilitator calls
 src/lib/hcs.ts            proof-of-run published to the consensus service
 src/lib/scheduled.ts      the plan as one all-or-nothing scheduled transfer
@@ -166,6 +175,8 @@ src/components/DebtGraph  the before/after picture, laid out from the data
 scripts/agent.mjs         the paying agent
 scripts/create-topic.mjs  one-time HCS topic setup
 scripts/create-agent.mjs  funds a second account so the agent is not the payee
+scripts/create-pool.mjs   funds the accounts a table's members settle through
+scripts/test-dinner.mjs   a whole dinner plus five attacks, against any server
 ```
 
 The plan screen calls the API over HTTP rather than importing the engine, so the
