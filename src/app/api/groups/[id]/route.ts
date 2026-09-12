@@ -61,7 +61,9 @@ export async function POST(request: Request, { params }: Ctx) {
         await setOwnShare(id, memberId, secret, body.cents);
         return NextResponse.json({ ok: true });
       case "lock":
-        return NextResponse.json(await lockGroup(id, memberId, secret));
+        return NextResponse.json(
+          await lockGroup(id, memberId, secret, new URL("/api/v1/net", request.url).toString()),
+        );
       case "reopen":
         await reopenGroup(id, memberId, secret);
         return NextResponse.json({ ok: true });

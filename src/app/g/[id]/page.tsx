@@ -18,6 +18,7 @@ interface Group {
   split_mode: SplitMode;
   status: "open" | "locked" | "settled";
   schedule_id: string | null;
+  plan_receipt: string | null;
 }
 
 interface Member {
@@ -222,6 +223,8 @@ export default function GroupRoom() {
           <ConfirmProgress done={confirmedDebtors} total={debtors.length} />
         )}
 
+        {group.status !== "open" && <PlanReceipt receipt={group.plan_receipt} />}
+
         <MemberList group={group} members={members} meId={me.id} />
 
         {group.status === "open" && !isAdmin && (
@@ -257,7 +260,7 @@ export default function GroupRoom() {
               onClick={() => act("lock")}
             >
               {busy === "lock"
-                ? t("Putting it on chain…", "Registrando…")
+                ? t("Buying the plan and putting it on chain…", "Pagando el cálculo y registrando…")
                 : t("Ask everyone to confirm", "Pedir que todos confirmen")}
             </button>
             <span className="foot-hint">
@@ -306,6 +309,37 @@ export default function GroupRoom() {
 }
 
 // ── pieces ──────────────────────────────────────────────────────────────────
+
+/**
+ * The app bought this settlement plan from the metered engine over x402.
+ * Shown with the transaction that paid for it, so the charge is something a
+ * person can open and check rather than a claim on a screen.
+ */
+function PlanReceipt({ receipt }: { receipt: string | null }) {
+  const { t } = useLocale();
+  if (!receipt) return null;
+
+  // 0.0.X@SECONDS.NANOS  ->  0.0.X-SECONDS-NANOS, the form the explorer takes
+  const [account, stamp = ""] = receipt.split("@");
+  const txPath = `${account}-${stamp.replace(".", "-")}`;
+
+  return (
+    <a
+      className="receipt plan-receipt"
+      href={`https://hashscan.io/testnet/transaction/${encodeURIComponent(txPath)}`}
+      target="_blank"
+      rel="noreferrer"
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 12.5l5 5L20 6.5" />
+      </svg>
+      <span className="grow">
+        {t("Plan bought from the engine · paid over x402", "Cálculo comprado al motor · pagado por x402")}
+      </span>
+      <span aria-hidden="true">↗</span>
+    </a>
+  );
+}
 
 function StatusChip({ status }: { status: Group["status"] }) {
   const { t } = useLocale();

@@ -84,6 +84,8 @@ console.log("\n── confirm and pay ──────────────
 const locked = await call(`/api/groups/${groupId}`, { action: "lock", ...rosa });
 check("Rosa asks for confirmations — settlement goes on chain", locked.status === 200, locked.data.scheduleId ?? locked.data.error);
 const scheduleId = locked.data.scheduleId;
+const planReceipt = locked.data.planReceipt;
+check("the plan was bought from the engine over x402", /^0\.0\.\d+@\d+\.\d+$/.test(planReceipt ?? ""), planReceipt ?? "no receipt");
 
 const late = await call(`/api/groups/${groupId}`, { action: "join", name: "Late Larry" });
 check("nobody can join once confirmations start", late.status === 409, `status ${late.status}`);
@@ -102,5 +104,9 @@ check("the group is settled", g.group.status === "settled");
 
 console.log(`\n  group     ${BASE}/g/${groupId}`);
 console.log(`  schedule  https://hashscan.io/testnet/schedule/${scheduleId}`);
+if (planReceipt) {
+  const [acct, stamp] = planReceipt.split("@");
+  console.log(`  x402 paid https://hashscan.io/testnet/transaction/${acct}-${stamp.replace(".", "-")}`);
+}
 console.log(failures === 0 ? "\n  ALL CHECKS PASSED\n" : `\n  ${failures} CHECK(S) FAILED\n`);
 process.exit(failures === 0 ? 0 : 1);

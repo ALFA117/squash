@@ -1,5 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { centsToTinybars } from "./demoAccounts";
+import type { Transfer } from "./netting";
+import { fetchPaidPlan } from "./payingClient";
 import { pool, poolSize } from "./pool";
 import { scheduleSettlement, scheduleStatus, signSchedule } from "./scheduled";
 import { checkShares, equalShares, transfersToPayer, type SplitMode } from "./split";
@@ -30,6 +32,8 @@ export interface GroupRow {
   split_mode: SplitMode;
   status: "open" | "locked" | "settled";
   schedule_id: string | null;
+  /** The Hedera transaction that paid the engine for this plan, over x402. */
+  plan_receipt: string | null;
   created_at: string;
 }
 
@@ -320,7 +324,13 @@ export async function setOwnShare(groupId: string, memberId: string, secret: str
  * From here the amounts are fixed: a single scheduled transaction now holds
  * every payment to the payer, pending until each person who owes has signed.
  */
-export async function lockGroup(groupId: string, memberId: string, secret: string) {
+export async function lockGroup(
+  groupId: string,
+  memberId: string,
+  secret: string,
+  /** Absolute URL of the metered engine the plan is bought from. */
+  engineUrl: string,
+) {
   await authenticateAdmin(groupId, memberId, secret);
   const { group, members } = await getGroup(groupId);
   assertOpen(group);
@@ -338,8 +348,23 @@ export async function lockGroup(groupId: string, memberId: string, secret: strin
     );
   }
 
-  const transfers = transfersToPayer(group.payer_id, members);
-  if (transfers.length === 0) throw new GroupError("Nobody owes anything — there is nothing to settle");
+  const owed = transfersToPayer(group.payer_id, members);
+  if (owed.length === 0) throw new GroupError("Nobody owes anything — there is nothing to settle");
+
+  // Buy the settlement plan from the metered engine, over x402, the same way
+  // any other customer would. For one bill with one payer the plan is simply
+  // "everyone pays the payer" — there is nothing to compress, and the product
+  // says so — but the app still pays for the computation, so every settlement
+  // it makes runs through the paid service rather than around it.
+  const plan = await fetchPaidPlan(engineUrl, { obligations: owed });
+  const transfers = (plan.transfers as Transfer[] | undefined) ?? [];
+
+  // The engine's plan must move exactly what is owed. If it ever disagreed,
+  // settling it would charge people amounts they never agreed to.
+  const sum = (list: Transfer[]) => list.reduce((a, t) => a + t.cents, 0);
+  if (transfers.length === 0 || sum(transfers) !== sum(owed)) {
+    throw new GroupError("The settlement plan did not match the shares — nothing was charged", 502);
+  }
 
   const accounts = pool()!;
   const accountMap: Record<string, string> = {};
@@ -365,13 +390,14 @@ export async function lockGroup(groupId: string, memberId: string, secret: strin
     if (error) throw new GroupError(error.message, 502);
   }
 
+  const planReceipt = plan.paid && typeof plan.receipt === "string" ? plan.receipt : null;
   const { error } = await db
     .from("groups")
-    .update({ status: "locked", schedule_id: scheduleId })
+    .update({ status: "locked", schedule_id: scheduleId, plan_receipt: planReceipt })
     .eq("id", groupId);
   if (error) throw new GroupError(error.message, 502);
 
-  return { scheduleId };
+  return { scheduleId, planReceipt };
 }
 
 /** Throw the pending settlement away and let the split change again. */
@@ -384,7 +410,10 @@ export async function reopenGroup(groupId: string, memberId: string, secret: str
   const db = serverClient();
   // The abandoned schedule stays pending until it expires. It can never
   // execute without every signature — which is the whole guarantee.
-  const { error } = await db.from("groups").update({ status: "open", schedule_id: null }).eq("id", groupId);
+  const { error } = await db
+    .from("groups")
+    .update({ status: "open", schedule_id: null, plan_receipt: null })
+    .eq("id", groupId);
   if (error) throw new GroupError(error.message, 502);
 
   const { error: e } = await db.from("members").update({ confirmed: false }).eq("group_id", groupId);

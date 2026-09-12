@@ -1758,3 +1758,12 @@ a[class*="avatar"] {
 .demo-note:hover {
   border-color: var(--settled);
 }
+
+.plan-receipt {
+  text-decoration: none;
+  transition: color 180ms ease-out;
+}
+
+.plan-receipt:hover {
+  color: var(--ink);
+}
