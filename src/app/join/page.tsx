@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { VALLE_DE_BRAVO } from "@/lib/sample";
 import { useLocale } from "@/components/Locale";
+import { useGroup } from "@/components/GroupProvider";
 
 /**
  * Joining a group.
@@ -14,16 +15,18 @@ import { useLocale } from "@/components/Locale";
  * into the graph and walk away net positive. One person, one node.
  */
 export default function JoinScreen() {
-  const { login, authenticated, ready } = usePrivy();
+  const { login, authenticated, ready, user } = usePrivy();
+  const { syncUser } = useGroup();
   const router = useRouter();
   const others = VALLE_DE_BRAVO.people.filter((p) => !p.isYou);
   const { t } = useLocale();
+  const userLabel = user?.email?.address || user?.phone?.number || user?.wallet?.address || null;
 
   useEffect(() => {
     if (ready && authenticated) {
-      router.push("/grupo");
+      syncUser(user);
     }
-  }, [ready, authenticated, router]);
+  }, [ready, authenticated, user, syncUser]);
 
   const handleJoin = () => {
     if (authenticated) {
@@ -133,9 +136,15 @@ export default function JoinScreen() {
             <path d="M3 8.5h3.2l1.6-2.4h8.4l1.6 2.4H21v10H3z" />
             <circle cx="12" cy="13" r="3.4" />
           </svg>
-          {t("Take a selfie", "Tomar selfie")}
+          {authenticated ? t("Continue to the group", "Continuar al grupo") : t("Take a selfie", "Tomar selfie")}
         </button>
-        <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("Your photo is never saved.", "La foto no se guarda en ningún lado.")}</span>
+        {authenticated && userLabel ? (
+          <span style={{ fontSize: 11.5, color: "var(--muted)", textAlign: "center" }}>
+            {t("Signed in as", "Conectado como")} {userLabel}
+          </span>
+        ) : (
+          <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("Your photo is never saved.", "La foto no se guarda en ningún lado.")}</span>
+        )}
       </div>
     </main>
   );

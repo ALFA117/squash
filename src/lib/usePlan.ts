@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Transfer } from "./netting";
+import type { Transfer, Expense } from "./netting";
 
 export interface PlanResponse {
   balances: Record<string, number>;
@@ -22,16 +22,22 @@ export interface PlanResponse {
  * Every screen that shows the plan asks the engine over HTTP rather than
  * importing it, so the paid path is the one the UI actually exercises.
  */
-export function usePlan() {
+export function usePlan(expenses: Expense[]) {
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (expenses.length === 0) return;
+    
     let cancelled = false;
 
     // The app's own endpoint, which pays the engine on the server's behalf.
     // The browser holds no key and never speaks x402 directly.
-    fetch("/api/plan")
+    fetch("/api/plan", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expenses }),
+    })
       .then(async (r) => {
         if (!r.ok) throw new Error(`El motor respondió ${r.status}`);
         return (await r.json()) as PlanResponse;
@@ -46,7 +52,7 @@ export function usePlan() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [expenses]);
 
   return { plan, error };
 }

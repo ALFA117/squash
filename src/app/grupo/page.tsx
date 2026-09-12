@@ -2,49 +2,82 @@
 
 import Link from "next/link";
 import { formatCents, netExpenses } from "@/lib/netting";
-import { personName, VALLE_DE_BRAVO } from "@/lib/sample";
 import { useLocale } from "@/components/Locale";
+import { useGroup } from "@/components/GroupProvider";
 
 export default function GroupScreen() {
   const { t, locale } = useLocale();
-  const { balances, grossEdges } = netExpenses(VALLE_DE_BRAVO.expenses);
-  const you = VALLE_DE_BRAVO.people.find((p) => p.isYou)!;
+  const { name, people, expenses: groupExpenses, addPerson } = useGroup();
+  const { balances, grossEdges } = netExpenses(groupExpenses);
+  const you = people.find((p) => p.isYou) ?? people[0];
   const yourBalance = balances[you.id] ?? 0;
 
-  const creditors = VALLE_DE_BRAVO.people
+  const personNameFor = (id: string) => people.find((p) => p.id === id)?.name ?? id;
+  const personInitialFor = (id: string) => people.find((p) => p.id === id)?.initial ?? id[0]?.toUpperCase() ?? "?";
+
+  const creditors = people
     .filter((p) => (balances[p.id] ?? 0) > 0)
     .map((p) => p.name);
 
-  const expenses = [...VALLE_DE_BRAVO.expenses].sort((a, b) => b.cents - a.cents);
+  const expenses = [...groupExpenses].sort((a, b) => b.cents - a.cents);
 
   return (
     <main className="phone">
       <div className="screen-head" style={{ justifyContent: "space-between" }}>
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <h1 className="title">{VALLE_DE_BRAVO.name}</h1>
+          <h1 className="title">{name}</h1>
           <span className="subtitle">
-            {VALLE_DE_BRAVO.people.length} {t("people", "personas")} · {VALLE_DE_BRAVO.expenses.length} {t("expenses", "gastos")}
+            {people.length} {t("people", "personas")} · {groupExpenses.length} {t("expenses", "gastos")}
           </span>
         </div>
-        <Link
-          href="/expense"
-          aria-label={t("Add expense", "Agregar gasto")}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 10,
-            background: "var(--surface-2)",
-            border: "1px solid var(--rule)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--ink)",
-          }}
-        >
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </Link>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            aria-label={t("Add person", "Agregar persona")}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              background: "var(--surface-2)",
+              border: "1px solid var(--rule)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--ink)",
+              cursor: "pointer",
+            }}
+            onClick={() => {
+              const nextName = window.prompt(
+                t("Add a person to this group", "Agregar una persona al grupo"),
+                t("New person", "Nueva persona"),
+              );
+              if (nextName) addPerson(nextName);
+            }}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+          <Link
+            href="/expense"
+            aria-label={t("Add expense", "Agregar gasto")}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              background: "var(--surface-2)",
+              border: "1px solid var(--rule)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--ink)",
+            }}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </Link>
+        </div>
       </div>
 
       <section
@@ -75,6 +108,13 @@ export default function GroupScreen() {
           <span style={{ fontSize: 12, color: "var(--muted)" }}>MXN</span>
         </div>
         <span style={{ fontSize: 13, color: "var(--muted)" }}>
+          {yourBalance === 0
+            ? t("You are settled for now.", "Ahora mismo estás en cero.")
+            : yourBalance > 0
+              ? `${t("You are owed", "Te deben")} ${formatCents(yourBalance)}.`
+              : `${t("You owe", "Debes")} ${formatCents(Math.abs(yourBalance))}.`}
+        </span>
+        <span style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
           {creditors.join(", ").replace(/, ([^,]*)$/, locale === "es" ? " y $1" : " and $1")} {t("paid more than their share.", "pusieron de más.")}
         </span>
       </section>
@@ -88,12 +128,12 @@ export default function GroupScreen() {
                   e.payer === you.id ? "avatar you" : "avatar"
                 }
               >
-                {VALLE_DE_BRAVO.people.find((p) => p.id === e.payer)?.initial}
+                {personInitialFor(e.payer)}
               </div>
               <div className="grow" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 <span style={{ fontSize: 14.5, fontWeight: 500 }}>{e.label}</span>
                 <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
-                  {e.payer === you.id ? t("You paid", "Tú pagaste") : `${personName(e.payer)} ${t("paid", "pagó")}`}
+                  {e.payer === you.id ? t("You paid", "Tú pagaste") : `${personNameFor(e.payer)} ${t("paid", "pagó")}`}
                 </span>
               </div>
               <span className="money">{formatCents(e.cents)}</span>
@@ -107,7 +147,7 @@ export default function GroupScreen() {
           {t("Settle the group", "Liquidar el grupo")}
         </Link>
         <span style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
-          {grossEdges.length} {t("crossed debts between", "deudas cruzadas entre")} {VALLE_DE_BRAVO.people.length} {t("people", "personas")}
+          {grossEdges.length} {t("crossed debts between", "deudas cruzadas entre")} {people.length} {t("people", "personas")}
         </span>
       </div>
     </main>

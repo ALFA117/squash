@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { PayingNotice } from "@/components/PayingNotice";
+import { useGroup } from "@/components/GroupProvider";
 import { formatCents, type Transfer } from "@/lib/netting";
-import { personInitial, personName } from "@/lib/sample";
 import { useLocale } from "@/components/Locale";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 /**
  * Waiting for signatures.
@@ -25,6 +26,7 @@ import { useLocale } from "@/components/Locale";
 export default function SignScreen() {
   const router = useRouter();
   const { t, locale } = useLocale();
+  const { people } = useGroup();
 
   const [scheduleId, setScheduleId] = useState<string | null>(null);
   const [transfers, setTransfers] = useState<Transfer[] | null>(null);
@@ -33,41 +35,82 @@ export default function SignScreen() {
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
 
-  const { user } = usePrivy();
+  const { user, ready: privyReady, authenticated } = usePrivy();
+  const { wallets } = useWallets();
+
+  const wallet =
+    wallets.find(
+      (candidate: any) =>
+        candidate?.address?.toLowerCase() === user?.wallet?.address?.toLowerCase(),
+    ) ?? wallets[0] ?? null;
+
+  const walletPublicKey = (user as any)?.wallet?.publicKey ?? (wallet as any)?.publicKey ?? null;
+  const personNameFor = (id: string) => people.find((p) => p.id === id)?.name ?? id;
+  const personInitialFor = (id: string) => people.find((p) => p.id === id)?.initial ?? id[0]?.toUpperCase() ?? "?";
+
+  const hasRealWallet = Boolean(wallet && walletPublicKey);
+  const walletStateMessage = !authenticated
+    ? t("Sign in with Privy to confirm your part.", "Inicia sesión con Privy para confirmar tu parte.")
+    : !hasRealWallet
+      ? t("This session does not expose a Privy wallet yet. Connect or create one to sign the schedule.", "Esta sesión todavía no expone una wallet de Privy. Conecta o crea una para firmar el schedule.")
+      : null;
+  
   const sign = useCallback(async (id: string, person: string) => {
-    // 1. Prepare: Get transaction bytes to sign
+    if (!privyReady) {
+      throw new Error("Privy is still loading. Please wait a moment and try again.");
+    }
+
+    if (!authenticated) {
+      throw new Error("Please sign in with Privy before confirming your part.");
+    }
+
+    if (!wallet || !walletPublicKey) {
+      throw new Error("This session does not expose a Privy wallet yet. Connect or create one and try again.");
+    }
+
     const prepareRes = await fetch("/api/settle/sign/prepare", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ scheduleId: id }),
     });
+
+    if (!prepareRes.ok) {
+      throw new Error("Failed to prepare transaction");
+    }
+
     const { bytes } = (await prepareRes.json()) as { bytes: number[] };
 
-    // 2. Sign: Use Privy to sign bytes
-    // Note: This assumes Privy's embedded wallet provides a signTransaction method
-    // or similar that accepts Hedera transaction bytes. Adjust as needed based on
-    // Privy/Hedera SDK integration requirements.
-    const wallet = await user?.linkedAccounts.find(
-      (account) => account.type === "smart_wallet"
-    );
-    if (!wallet) throw new Error("No embedded wallet found");
+    const hex = `0x${Array.from(bytes)
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("")}`;
 
-    // Simplified for this context, in reality this needs proper Hedera SDK/Privy interaction
-    // await wallet.sign(bytes);
+    const signatureHex = await wallet.sign(hex);
 
-    // 3. Submit: Send signed bytes
     const submitRes = await fetch("/api/settle/sign/submit", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ bytes: Buffer.from(bytes).toString("base64") }),
+      body: JSON.stringify({
+        scheduleId: id,
+        bytes: btoa(String.fromCharCode(...bytes)),
+        signature: signatureHex,
+        publicKey: walletPublicKey,
+      }),
     });
-    const data = (await submitRes.json()) as { success?: boolean; error?: string };
+
+    if (!submitRes.ok) {
+      throw new Error("Failed to submit transaction");
+    }
+
+    const data = (await submitRes.json()) as {
+      success?: boolean;
+      executed?: boolean;
+      error?: string;
+    };
     if (data.error) throw new Error(data.error);
-    
-    setSigned((current) => [...current, person]);
-    // Status checking needs to be handled appropriately
-    return false;
-  }, [user]);
+
+    setSigned((current) => (current.includes(person) ? current : [...current, person]));
+    return Boolean(data.executed);
+  }, [authenticated, privyReady, wallet, walletPublicKey]);
 
   // Put the plan on chain, then let the other debtors sign. Each signature is
   // a real transaction, so they land one at a time and the list fills in.
@@ -94,8 +137,10 @@ export default function SignScreen() {
         setScheduleId(data.scheduleId);
         setTransfers(data.transfers);
 
-        for (const person of data.transfers.map((t) => t.from).filter((p) => p !== "tu")) {
-          await sign(data.scheduleId, person);
+        if (hasRealWallet) {
+          for (const person of data.transfers.map((t) => t.from).filter((p) => p !== "tu")) {
+            await sign(data.scheduleId, person);
+          }
         }
       } catch (e) {
         setError((e as Error).message);
@@ -149,6 +194,21 @@ export default function SignScreen() {
       </div>
 
       <div style={{ padding: "0 22px", display: "flex", flexDirection: "column", gap: 18, flexGrow: 1 }}>
+        {walletStateMessage && (
+          <div
+            style={{
+              border: "1px solid var(--rule)",
+              background: "var(--surface-2)",
+              borderRadius: 10,
+              padding: "10px 12px",
+              fontSize: 12,
+              color: "var(--muted)",
+              lineHeight: 1.45,
+            }}
+          >
+            {walletStateMessage}
+          </div>
+        )}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
             <span className="headline-count" style={{ fontSize: 40 }}>
@@ -190,11 +250,11 @@ export default function SignScreen() {
                   style={!done && isYou ? { background: "var(--surface-2)" } : undefined}
                 >
                   <span className={isYou ? "avatar you" : "avatar"} style={{ width: 34, height: 34 }}>
-                    {personInitial(transfer.from)}
+                    {personInitialFor(transfer.from)}
                   </span>
                   <span className="grow" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                     <span style={{ fontSize: 14.5, fontWeight: isYou ? 600 : 500 }}>
-                      {personName(transfer.from)}
+                      {personNameFor(transfer.from)}
                     </span>
                     <span style={{ fontSize: 11.5, color: done ? "var(--settled)" : "var(--muted)" }}>
                       {done ? t("Confirmed", "Confirmó") : isYou ? t("Your confirmation is needed", "Falta tu confirmación") : t("Signing…", "Firmando…")} ·{" "}
@@ -244,12 +304,12 @@ export default function SignScreen() {
           <span style={{ display: "flex", gap: 5 }}>
             {receivers.map((r) => (
               <span key={r} className="avatar" style={{ width: 26, height: 26, fontSize: 10.5 }}>
-                {personInitial(r)}
+                {personInitialFor(r)}
               </span>
             ))}
           </span>
           <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
-            {receivers.map(personName).join(", ").replace(/, ([^,]*)$/, locale === "es" ? " y $1" : " and $1")} {t("only receive.", "solo reciben.")}
+            {receivers.map(personNameFor).join(", ").replace(/, ([^,]*)$/, locale === "es" ? " y $1" : " and $1")} {t("only receive.", "solo reciben.")}
           </span>
         </div>
 
@@ -275,7 +335,7 @@ export default function SignScreen() {
             <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("Your part", "Tu parte")}</span>
             <span className="money" style={{ fontSize: 15, fontWeight: 500 }}>
               {formatCents(yours.cents)}{" "}
-              <span style={{ color: "var(--muted)", fontWeight: 400 }}>{t("to", "a")} {personName(yours.to)}</span>
+              <span style={{ color: "var(--muted)", fontWeight: 400 }}>{t("to", "a")} {personNameFor(yours.to)}</span>
             </span>
           </div>
         )}

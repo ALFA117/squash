@@ -1,13 +1,18 @@
 :root {
-  --bg: #edefec;
-  --surface: #f8f9f6;
-  --surface-2: #e3e7e0;
-  --ink: #171b17;
-  --muted: #5b655c;
-  --rule: #cfd5cc;
-  --settled: #0b6b4f;
-  --owed: #8e3b2e;
-  --rail: #7a5f10;
+  --bg: #edf3ee;
+  --surface: rgba(250, 252, 250, 0.88);
+  --surface-2: #dfeae0;
+  --surface-3: #cee0d4;
+  --ink: #132018;
+  --muted: #526559;
+  --rule: #c6d4c9;
+  --settled: #1b8058;
+  --settled-strong: #135f42;
+  --owed: #ad5445;
+  --rail: #8a6d1d;
+  --shadow-soft: 0 18px 42px rgba(19, 32, 24, 0.09);
+  --shadow-card: 0 10px 24px rgba(19, 32, 24, 0.06);
+  --ring: rgba(27, 128, 88, 0.18);
 
   --f-display: "Newsreader", Georgia, "Times New Roman", serif;
   --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
@@ -69,7 +74,9 @@ body {
 }
 
 body {
-  background: var(--surface-2);
+  background:
+    radial-gradient(circle at top, rgba(141, 191, 160, 0.18), transparent 36%),
+    linear-gradient(180deg, #edf3ee 0%, #e4ece5 100%);
   color: var(--ink);
   font-family: var(--f-body);
   -webkit-font-smoothing: antialiased;
@@ -81,7 +88,9 @@ body {
   width: min(390px, 100%);
   min-height: 100dvh;
   margin: 0 auto;
-  background: var(--bg);
+  background: linear-gradient(180deg, rgba(249, 251, 249, 0.96), rgba(240, 245, 241, 0.98));
+  border: 1px solid rgba(101, 116, 103, 0.12);
+  box-shadow: var(--shadow-soft);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -102,7 +111,9 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 26px 22px 12px;
+  padding: 24px 22px 14px;
+  border-bottom: 1px solid rgba(198, 212, 201, 0.8);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0));
 }
 
 .back {
@@ -131,17 +142,20 @@ body {
 
 .label {
   font-family: var(--f-mono);
-  font-size: 11px;
-  letter-spacing: 0.13em;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
   color: var(--muted);
+  text-transform: uppercase;
 }
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(245, 249, 246, 0.9));
+  border: 1px solid rgba(198, 212, 201, 0.95);
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 .row {
@@ -150,6 +164,7 @@ body {
   gap: 13px;
   padding: 12px 15px;
   border-bottom: 1px solid var(--rule);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .row:last-child {
@@ -160,20 +175,21 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--surface-2);
-  border: 1px solid var(--rule);
+  background: linear-gradient(180deg, var(--surface-2), #c7d7cb);
+  border: 1px solid rgba(120, 137, 125, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--muted);
   flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .avatar.you {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: linear-gradient(180deg, #1d2d24, var(--ink));
+  border-color: rgba(19, 32, 24, 0.72);
   color: var(--surface);
 }
 
@@ -196,26 +212,27 @@ body {
 .btn {
   width: 100%;
   height: 54px;
-  border: none;
-  border-radius: 10px;
+  border: 1px solid rgba(19, 32, 24, 0.08);
+  border-radius: 14px;
   font-family: var(--f-body);
   font-size: 15.5px;
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 10px 18px rgba(16, 34, 25, 0.08);
 }
 
 .btn-settle {
-  background: var(--settled);
+  background: linear-gradient(180deg, var(--settled), var(--settled-strong));
   color: var(--surface);
 }
 
 .btn-dark {
-  background: var(--ink);
+  background: linear-gradient(180deg, #1e2d25, var(--ink));
   color: var(--surface);
 }
 
@@ -224,21 +241,23 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid rgba(198, 212, 201, 0.9);
   margin-top: auto;
+  background: linear-gradient(180deg, rgba(240, 245, 241, 0), rgba(224, 236, 228, 0.28));
 }
 
 .receipt {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 13px;
-  border-left: 2px solid var(--rail);
-  background: var(--surface);
+  padding: 10px 12px;
+  border-left: 3px solid var(--rail);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(243, 247, 244, 0.9));
   font-family: var(--f-mono);
   font-size: 11px;
   color: var(--rail);
   overflow-wrap: anywhere;
+  border-radius: 10px;
 }
 
 .headline-count {
@@ -255,13 +274,14 @@ body {
   position: relative;
   width: 194px;
   height: 194px;
-  background: var(--surface);
-  border: 1px solid var(--rule);
+  background: linear-gradient(135deg, rgba(245, 249, 246, 0.92), rgba(227, 237, 230, 0.96));
+  border: 1px solid rgba(146, 172, 154, 0.65);
   border-radius: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 /* --- expense form ------------------------------------------------------- */
@@ -358,9 +378,10 @@ body {
   gap: 11px;
   align-items: flex-start;
   padding: 15px 16px;
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(239, 246, 240, 0.95));
+  border: 1px solid rgba(198, 212, 201, 0.8);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
 }
 
 /* --- done --------------------------------------------------------------- */

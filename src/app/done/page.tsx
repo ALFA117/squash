@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { formatCents } from "@/lib/netting";
-import { personName } from "@/lib/sample";
+import { personName, VALLE_DE_BRAVO } from "@/lib/sample";
 import { usePlan } from "@/lib/usePlan";
 import { useLocale } from "@/components/Locale";
 
@@ -17,9 +17,67 @@ import { useLocale } from "@/components/Locale";
  * rather than inventing a hash.
  */
 function Done() {
-  const { plan, error } = usePlan();
+  const { plan, error } = usePlan(VALLE_DE_BRAVO.expenses);
   const { t } = useLocale();
   const scheduleId = useSearchParams().get("schedule");
+  const [scheduleStatus, setScheduleStatus] = useState<{
+    executed: boolean | null;
+    loading: boolean;
+    error: string | null;
+  }>({ executed: null, loading: false, error: null });
+
+  useEffect(() => {
+    if (!scheduleId) {
+      setScheduleStatus({ executed: null, loading: false, error: null });
+      return;
+    }
+
+    let ignored = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/settle?scheduleId=${encodeURIComponent(scheduleId)}`);
+        const data = (await res.json()) as { executed?: boolean; error?: string };
+
+        if (!res.ok || data.error) {
+          throw new Error(data.error ?? "Failed to fetch schedule status");
+        }
+
+        if (ignored) return;
+
+        const executed = Boolean(data.executed);
+
+        if (executed) {
+          setScheduleStatus({ executed: true, loading: false, error: null });
+          return;
+        }
+
+        attempts += 1;
+
+        if (attempts >= 20) {
+          setScheduleStatus({ executed: false, loading: false, error: null });
+          return;
+        }
+
+        timeoutId = setTimeout(() => {
+          void poll();
+        }, 2500);
+      } catch (e) {
+        if (ignored) return;
+        setScheduleStatus({ executed: null, loading: false, error: (e as Error).message });
+      }
+    };
+
+    setScheduleStatus({ executed: null, loading: true, error: null });
+    void poll();
+
+    return () => {
+      ignored = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [scheduleId]);
 
   if (error || !plan) {
     return (
@@ -35,6 +93,21 @@ function Done() {
     process.env.NEXT_PUBLIC_HEDERA_NETWORK === "mainnet"
       ? "https://hashscan.io/mainnet"
       : "https://hashscan.io/testnet";
+  const isVerified = scheduleStatus.executed === true;
+  const title = scheduleStatus.loading
+    ? t("Verifying settlement…", "Verificando liquidación…")
+    : isVerified
+      ? t("Everyone is settled.", "Todos en cero.")
+      : t("Settlement is pending…", "Liquidación pendiente…");
+  const statusText = scheduleStatus.loading
+    ? t("Checking the schedule on Hedera now.", "Comprobando el schedule en Hedera ahora mismo.")
+    : scheduleStatus.error
+      ? scheduleStatus.error
+      : isVerified
+        ? t("The final scheduled transfer has executed successfully.", "La transferencia programada final ya se ejecutó correctamente.")
+        : scheduleStatus.executed === false
+          ? t("The schedule exists, but the final execution has not happened yet.", "El schedule existe, pero la ejecución final aún no ha ocurrido.")
+          : t("Waiting for the schedule result.", "Esperando el resultado del schedule.");
 
   return (
     <main className="phone done">
@@ -58,7 +131,7 @@ function Done() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <span style={{ fontFamily: "var(--f-display)", fontSize: 36, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.08 }}>
-            {t("Everyone is settled.", "Todos en cero.")}
+            {title}
           </span>
           <span style={{ fontSize: 14, color: "#d3e8dc" }}>Valle de Bravo</span>
         </div>
@@ -85,7 +158,7 @@ function Done() {
         </div>
 
         <span style={{ fontSize: 13.5, color: "#d3e8dc", lineHeight: 1.5, maxWidth: 290, textWrap: "pretty" }}>
-          {t(`All ${plan.transfers.length} transfers went out together, at the same instant. ${plan.grossEdges.length} debts closed.`, `Las ${plan.transfers.length} salieron juntas, en el mismo instante. ${plan.grossEdges.length} deudas cerradas.`)}
+          {statusText}
         </span>
       </div>
 
@@ -94,7 +167,7 @@ function Done() {
           {t("Back to group", "Volver al grupo")}
         </Link>
 
-        {scheduleId ? (
+        {scheduleId && isVerified ? (
           <a
             className="receipt-link"
             href={`${explorer}/schedule/${encodeURIComponent(scheduleId)}`}
@@ -106,11 +179,11 @@ function Done() {
               <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5" />
             </svg>
           </a>
-        ) : (
+        ) : !scheduleId ? (
           <span style={{ fontSize: 11.5, color: "#a9d3bf", textAlign: "center", maxWidth: 280, lineHeight: 1.45 }}>
             {t("This view did not come from a settlement — enter through the plan to move real money.", "Esta vista no vino de una liquidación — entra por el plan para mover dinero de verdad.")}
           </span>
-        )}
+        ) : null}
       </div>
     </main>
   );

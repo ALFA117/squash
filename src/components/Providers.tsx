@@ -1,6 +1,7 @@
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
+import { GroupProvider } from "./GroupProvider";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmtwl2qcb00500djm14bkfixg";
@@ -22,7 +23,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         },
       }}
     >
-      {children}
+      <GroupProvider>
+        {children}
+      </GroupProvider>
     </PrivyProvider>
   );
 }

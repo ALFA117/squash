@@ -10,6 +10,7 @@ interface Edge {
 interface Node {
   id: string;
   initial: string;
+  name?: string;
   isYou?: boolean;
 }
 
@@ -189,6 +190,16 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
               fill={node.isYou ? "var(--surface)" : "var(--ink)"}
             >
               {node.initial}
+            </text>
+            <text
+              x={p.x}
+              y={p.y + 34}
+              textAnchor="middle"
+              fontFamily="var(--f-body)"
+              fontSize="9"
+              fill="var(--muted)"
+            >
+              {node.name ?? node.initial}
             </text>
           </g>
         );

@@ -4,24 +4,29 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { DebtGraph } from "@/components/DebtGraph";
 import { PayingNotice } from "@/components/PayingNotice";
+import { useGroup } from "@/components/GroupProvider";
 import { formatCents } from "@/lib/netting";
-import { personInitial, personName, VALLE_DE_BRAVO as GROUP } from "@/lib/sample";
 import { usePlan } from "@/lib/usePlan";
 import { useLocale } from "@/components/Locale";
 
 export default function PlanScreen() {
-  const { plan, error } = usePlan();
+  const { people, expenses: groupExpenses } = useGroup();
+  const { plan, error } = usePlan(groupExpenses);
   const { t } = useLocale();
   const reducedMotion = useReducedMotion();
   const entrance = reducedMotion
     ? { duration: 0 }
     : { duration: 0.36, ease: [0.16, 1, 0.3, 1] as const };
 
-  const nodes = GROUP.people.map((p) => ({
+  const nodes = people.map((p) => ({
     id: p.id,
     initial: p.initial,
+    name: p.name,
     isYou: p.isYou,
   }));
+
+  const personNameFor = (id: string) => people.find((p) => p.id === id)?.name ?? id;
+  const personInitialFor = (id: string) => people.find((p) => p.id === id)?.initial ?? id[0]?.toUpperCase() ?? "?";
 
   return (
     <main className="phone">
@@ -100,14 +105,14 @@ export default function PlanScreen() {
                   style={{ gap: 10 }}
                 >
                   <div className={t.from === "tu" ? "avatar sm you" : "avatar sm"}>
-                    {personInitial(t.from)}
+                    {personInitialFor(t.from)}
                   </div>
                   <svg width="15" height="10" viewBox="0 0 15 10" fill="none" stroke="var(--muted)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M0 5h12M9 1l4 4-4 4" />
                   </svg>
-                  <div className="avatar sm">{personInitial(t.to)}</div>
+                  <div className="avatar sm">{personInitialFor(t.to)}</div>
                   <span className="grow" style={{ fontSize: 14.5, marginLeft: 3 }}>
-                    {personName(t.to)}
+                    {personNameFor(t.from)} <span style={{ color: "var(--muted)" }}>→</span> {personNameFor(t.to)}
                   </span>
                   <span className="money" style={{ fontSize: 15, fontWeight: 500 }}>
                     {formatCents(t.cents)}

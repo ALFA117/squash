@@ -19,29 +19,14 @@ export default function ExpenseScreen() {
   const { people, addExpense } = useGroup();
 
   const [amount, setAmount] = useState("564.00");
-  const [currency, setCurrency] = useState<"MXN" | "USD">("MXN");
   const [label, setLabel] = useState(t("Highway tolls", "Casetas de la autopista"));
   const [payer, setPayer] = useState("tu");
   const [among, setAmong] = useState<string[]>(people.map((p) => p.id));
 
-  const exchangeRate = 20;
-
-  const handleCurrencyChange = (newCurrency: "MXN" | "USD") => {
-    if (newCurrency === currency) return;
-    const currentAmount = parseFloat(amount.replace(/,/g, "")) || 0;
-    if (newCurrency === "USD") {
-      setAmount((currentAmount / exchangeRate).toFixed(2));
-    } else {
-      setAmount((currentAmount * exchangeRate).toFixed(2));
-    }
-    setCurrency(newCurrency);
-  };
-
   const cents = useMemo(() => {
     const rawAmount = parseFloat(amount.replace(/,/g, "")) || 0;
-    const mxnAmount = currency === "USD" ? rawAmount * exchangeRate : rawAmount;
-    return Math.round(mxnAmount * 100);
-  }, [amount, currency]);
+    return Math.round(rawAmount * 100);
+  }, [amount]);
 
   const shares = useMemo(() => {
     const k = among.length;
@@ -78,22 +63,6 @@ export default function ExpenseScreen() {
               inputMode="decimal"
               aria-label={t("Amount", "Monto")}
             />
-          </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button
-              type="button"
-              className={currency === "MXN" ? "chip chip-on" : "chip"}
-              onClick={() => handleCurrencyChange("MXN")}
-            >
-              MXN
-            </button>
-            <button
-              type="button"
-              className={currency === "USD" ? "chip chip-on" : "chip"}
-              onClick={() => handleCurrencyChange("USD")}
-            >
-              USD
-            </button>
           </div>
         </div>
 
