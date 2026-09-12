@@ -3,6 +3,7 @@ import { demoAccounts } from "@/lib/demoAccounts";
 import { scheduleStatus, signSchedule } from "@/lib/scheduled";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
  * POST /api/settle/sign — one person adds their signature.
@@ -11,7 +12,8 @@ export const runtime = "nodejs";
  * so this route reports back whether the settlement has now executed.
  *
  * Signing on someone's behalf is only possible because these are throwaway
- * demo accounts whose keys the app holds. That is the part Privy replaces.
+ * demo accounts whose keys the app holds. A product has each person sign from
+ * their own Hedera wallet instead.
  */
 export async function POST(request: Request) {
   const accounts = demoAccounts();

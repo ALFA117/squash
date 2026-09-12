@@ -21,7 +21,7 @@ const TTL_MS = 10 * 60 * 1000;
 const cache = new Map<Currency, { rate: Rate; at: number }>();
 
 async function fromOpenEr(currency: Currency): Promise<Rate> {
-  const res = await fetch(`https://open.er-api.com/v6/latest/${currency}`, { cache: "no-store" });
+  const res = await fetch(`https://open.er-api.com/v6/latest/${currency}`, { cache: "no-store", signal: AbortSignal.timeout(5000) });
   const data = (await res.json()) as { result?: string; rates?: Record<string, number>; time_last_update_utc?: string };
   const usd = data.rates?.USD;
   if (data.result !== "success" || !(usd! > 0)) throw new Error("open.er-api.com gave no USD rate");
@@ -34,7 +34,7 @@ async function fromOpenEr(currency: Currency): Promise<Rate> {
 }
 
 async function fromFrankfurter(currency: Currency): Promise<Rate> {
-  const res = await fetch(`https://api.frankfurter.dev/v1/latest?base=${currency}&symbols=USD`, { cache: "no-store" });
+  const res = await fetch(`https://api.frankfurter.dev/v1/latest?base=${currency}&symbols=USD`, { cache: "no-store", signal: AbortSignal.timeout(5000) });
   const data = (await res.json()) as { rates?: Record<string, number>; date?: string };
   const usd = data.rates?.USD;
   if (!(usd! > 0)) throw new Error("frankfurter gave no USD rate");

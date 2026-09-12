@@ -4,6 +4,7 @@ import { VALLE_DE_BRAVO } from "@/lib/sample";
 import { validateExpenses } from "@/lib/validateExpenses";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
  * The app's screens ask for a plan here.

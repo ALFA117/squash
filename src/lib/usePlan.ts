@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchWithin } from "./http";
 import type { Transfer, Expense } from "./netting";
 
 export interface PlanResponse {
@@ -38,20 +39,30 @@ export function usePlan(expenses: Expense[]) {
 
     // The app's own endpoint, which pays the engine on the server's behalf.
     // The browser holds no key and never speaks x402 directly.
-    fetch("/api/plan", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ expenses }),
-    })
+    setError(null);
+    fetchWithin(
+      "/api/plan",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ expenses }),
+      },
+      60_000,
+    )
       .then(async (r) => {
-        if (!r.ok) throw new Error(`El motor respondió ${r.status}`);
+        if (!r.ok) {
+          const body = (await r.json().catch(() => ({}))) as { error?: string };
+          throw new Error(body.error ?? `El motor respondió ${r.status}`);
+        }
         return (await r.json()) as PlanResponse;
       })
       .then((data) => {
         if (!cancelled) setPlan(data);
       })
       .catch((e: Error) => {
-        if (!cancelled) setError(e.message);
+        if (!cancelled) {
+          setError(e.name === "SlowError" ? "La red tardó demasiado. Recarga la página para intentarlo de nuevo." : e.message);
+        }
       });
 
     return () => {

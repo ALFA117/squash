@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.81.0",
-    "@privy-io/react-auth": "^3.42.0",
     "@supabase/supabase-js": "^2.116.0",
     "@x402/core": "^2.25.0",
     "@x402/fetch": "^2.25.0",

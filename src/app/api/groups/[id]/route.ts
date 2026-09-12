@@ -12,6 +12,7 @@ import {
 } from "@/lib/groups";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ id: string }> };
 

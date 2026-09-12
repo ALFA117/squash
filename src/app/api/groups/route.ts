@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createGroup, GroupError } from "@/lib/groups";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /** POST /api/groups — start a bill. Whoever creates it paid it, and is admin. */
 export async function POST(request: Request) {

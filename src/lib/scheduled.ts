@@ -40,6 +40,9 @@ async function client() {
     process.env.HEDERA_OPERATOR_ID!,
     await parseOperatorKey(process.env.HEDERA_OPERATOR_KEY),
   );
+  // Fail in seconds, not minutes: a demo that hangs is worse than one that
+  // says "try again".
+  c.setRequestTimeout(25_000);
   return c;
 }
 
@@ -63,6 +66,7 @@ const MIRROR =
 async function tokenBalance(accountId: string, tokenId: string): Promise<number> {
   const res = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/tokens?token.id=${tokenId}`, {
     cache: "no-store",
+    signal: AbortSignal.timeout(6000),
   });
   if (!res.ok) return 0;
   const data = (await res.json()) as { tokens?: { balance: number }[] };

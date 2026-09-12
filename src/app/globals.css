@@ -2134,3 +2134,77 @@ a[class*="avatar"] {
     width: 100%;
   }
 }
+
+/* ── sample trip door ──────────────────────────────────────────────────── */
+
+.join-trip {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 18px 0 22px;
+}
+
+.join-avatars {
+  display: flex;
+  gap: 6px;
+}
+
+.join-summary-item small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.join-list {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.join-list li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 38px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.join-list li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.join-list strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.join-alt {
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--settled-strong);
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  text-underline-offset: 3px;
+}

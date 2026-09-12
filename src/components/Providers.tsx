@@ -1,37 +1,14 @@
 "use client";
 
-import { PrivyProvider } from "@privy-io/react-auth";
 import { GroupProvider } from "./GroupProvider";
 
+/**
+ * App-wide state. Privy used to wrap this for a sign-in on the sample trip;
+ * it was removed because it held the demo hostage — the join button stayed
+ * disabled until its wallet iframe loaded, then demanded an email code — and
+ * it pulled WalletConnect and an embedded-wallet frame into every page. The
+ * trip needs no identity: its six people are fixed testnet accounts.
+ */
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-
-  // Privy is used for sign-in only. With no App ID configured the app still
-  // runs — every screen works without it — rather than failing to render.
-  if (!appId) {
-    return <GroupProvider>{children}</GroupProvider>;
-  }
-
-  return (
-    <PrivyProvider
-      appId={appId}
-      config={{
-        appearance: {
-          accentColor: "#0b6b4f",
-          theme: "#edefec",
-          showWalletLoginFirst: false,
-          logo: "/brand/mark.png",
-        },
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: "users-without-wallets",
-          },
-        },
-      }}
-    >
-      <GroupProvider>
-        {children}
-      </GroupProvider>
-    </PrivyProvider>
-  );
+  return <GroupProvider>{children}</GroupProvider>;
 }

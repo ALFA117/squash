@@ -1,157 +1,96 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { VALLE_DE_BRAVO, Person } from "@/lib/sample";
 import { Expense } from "@/lib/netting";
+
+/**
+ * The sample trip, kept in this browser.
+ *
+ * The six people are fixed: each one is a funded testnet account, so the
+ * settlement can actually move money between them. Expenses can be added, and
+ * they persist here. Whatever is read back from storage is checked first —
+ * an older version of the app let people be renamed or invented, and one
+ * stale entry with no account behind it would make the settlement fail at
+ * the last step. Anything that does not fit the trip is dropped.
+ */
 
 interface GroupContextType {
   name: string;
   dates: string;
   people: Person[];
   expenses: Expense[];
-  confirmed: Record<string, boolean>;
   addExpense: (expense: Omit<Expense, "id">) => void;
-  addPerson: (name: string) => void;
-  confirmParticipation: (personId: string) => void;
   resetGroup: () => void;
-  syncUser: (user: any) => void;
 }
 
 const GroupContext = createContext<GroupContextType | undefined>(undefined);
 
+const KEY = "squash-trip-expenses";
+const PEOPLE = new Set(VALLE_DE_BRAVO.people.map((p) => p.id));
+
+function validExpense(e: unknown): e is Expense {
+  const x = e as Expense;
+  return (
+    !!x &&
+    typeof x.id === "string" &&
+    typeof x.label === "string" &&
+    PEOPLE.has(x.payer) &&
+    Number.isSafeInteger(x.cents) &&
+    x.cents > 0 &&
+    x.cents <= 10_000_000 &&
+    Array.isArray(x.among) &&
+    x.among.length > 0 &&
+    x.among.every((id) => PEOPLE.has(id))
+  );
+}
+
+function load(): Expense[] {
+  try {
+    // Leftovers from earlier versions of the demo, which could hold people
+    // with no account. Clear them so they cannot come back.
+    for (const old of ["squash-people", "squash-expenses", "squash-confirmed"]) localStorage.removeItem(old);
+    const saved = JSON.parse(localStorage.getItem(KEY) ?? "null");
+    if (Array.isArray(saved) && saved.length > 0 && saved.length <= 50 && saved.every(validExpense)) return saved;
+  } catch {
+    // unreadable storage: start from the trip as it is
+  }
+  return VALLE_DE_BRAVO.expenses;
+}
+
 export function GroupProvider({ children }: { children: React.ReactNode }) {
-  const [people, setPeople] = useState<Person[]>(VALLE_DE_BRAVO.people);
   const [expenses, setExpenses] = useState<Expense[]>(VALLE_DE_BRAVO.expenses);
-  const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
-  // Load from localStorage on mount
   useEffect(() => {
-    const savedPeople = localStorage.getItem("squash-people");
-    const savedExpenses = localStorage.getItem("squash-expenses");
-    const savedConfirmed = localStorage.getItem("squash-confirmed");
-
-    if (savedPeople && savedExpenses) {
-      setPeople(JSON.parse(savedPeople));
-      setExpenses(JSON.parse(savedExpenses));
-    } else {
-      setPeople(VALLE_DE_BRAVO.people);
-      setExpenses(VALLE_DE_BRAVO.expenses);
-    }
-
-    if (savedConfirmed) {
-      setConfirmed(JSON.parse(savedConfirmed));
-    }
-
-    setIsLoaded(true);
+    setExpenses(load());
+    setLoaded(true);
   }, []);
 
-  // Save to localStorage on change
   useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("squash-people", JSON.stringify(people));
-      localStorage.setItem("squash-expenses", JSON.stringify(expenses));
-      localStorage.setItem("squash-confirmed", JSON.stringify(confirmed));
+    if (!loaded) return;
+    try {
+      localStorage.setItem(KEY, JSON.stringify(expenses));
+    } catch {
+      // private mode: the trip still works, it just is not remembered
     }
-  }, [people, expenses, confirmed, isLoaded]);
+  }, [expenses, loaded]);
 
-  const addExpense = (newExpense: Omit<Expense, "id">) => {
-    const expense: Expense = {
-      ...newExpense,
-      id: `e${Date.now()}`,
-    };
-    setExpenses((current) => [...current, expense]);
-  };
+  const addExpense = useCallback((e: Omit<Expense, "id">) => {
+    setExpenses((current) => (current.length >= 50 ? current : [...current, { ...e, id: `e${Date.now()}` }]));
+  }, []);
 
-  const addPerson = (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-
-    const normalized = trimmed.replace(/\s+/g, " ");
-    const initial = normalized.charAt(0).toUpperCase();
-
-    setPeople((current) => {
-      if (current.some((person) => person.name.toLowerCase() === normalized.toLowerCase())) {
-        return current;
-      }
-
-      return [
-        ...current,
-        {
-          id: `person-${Date.now()}`,
-          name: normalized,
-          initial,
-        },
-      ];
-    });
-  };
-
-  const resetGroup = () => {
-    setPeople(VALLE_DE_BRAVO.people);
-    setExpenses(VALLE_DE_BRAVO.expenses);
-    setConfirmed({});
-  };
-
-  const confirmParticipation = (personId: string) => {
-    if (!personId) return;
-    setConfirmed((current) => ({ ...current, [personId]: true }));
-  };
-
-  const syncUser = (privyUser: any) => {
-    if (!privyUser) return;
-
-    const rawName =
-      privyUser.email?.address ||
-      privyUser.phone?.number ||
-      privyUser.wallet?.address ||
-      privyUser.id ||
-      "Tú";
-
-    const formattedName = rawName.includes("@")
-      ? rawName.split("@")[0]
-      : rawName.startsWith("0x")
-        ? `${rawName.slice(0, 6)}...${rawName.slice(-4)}`
-        : rawName;
-
-    const name = formattedName
-      .replace(/[._-]+/g, " ")
-      .trim()
-      .split(" ")
-      .map((part: string) => part ? part.charAt(0).toUpperCase() + part.slice(1) : part)
-      .join(" ") || "Tú";
-
-    const initial = name.trim().charAt(0)?.toUpperCase() || "T";
-
-    setPeople((current) => {
-      const exists = current.find((p) => p.id === "tu");
-      if (!exists) {
-        return [
-          { id: "tu", name, initial, isYou: true },
-          ...current,
-        ];
-      }
-
-      return current.map((p) =>
-        p.id === "tu"
-          ? { ...p, name, initial, isYou: true }
-          : p,
-      );
-    });
-  };
+  const resetGroup = useCallback(() => setExpenses(VALLE_DE_BRAVO.expenses), []);
 
   return (
     <GroupContext.Provider
       value={{
         name: VALLE_DE_BRAVO.name,
         dates: VALLE_DE_BRAVO.dates,
-        people,
+        people: VALLE_DE_BRAVO.people,
         expenses,
-        confirmed,
         addExpense,
-        addPerson,
-        confirmParticipation,
         resetGroup,
-        syncUser,
       }}
     >
       {children}

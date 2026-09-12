@@ -14,6 +14,7 @@ import {
 } from "@/lib/x402";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
  * POST /api/v1/net — the metered netting endpoint.

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { PayingNotice } from "@/components/PayingNotice";
 import { useGroup } from "@/components/GroupProvider";
+import { fetchWithin } from "@/lib/http";
 import { formatUsd } from "@/lib/money";
 import { formatCents, type Transfer } from "@/lib/netting";
 import { useLocale } from "@/components/Locale";
@@ -53,11 +54,15 @@ export default function SignScreen() {
    * Hedera signature. See CONTINUACION.md section 0.
    */
   const sign = useCallback(async (id: string, person: string) => {
-    const res = await fetch("/api/settle/sign", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scheduleId: id, person }),
-    });
+    const res = await fetchWithin(
+      "/api/settle/sign",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scheduleId: id, person }),
+      },
+      45_000,
+    );
     const data = (await res.json()) as { executed?: boolean; error?: string };
     if (!res.ok || data.error) {
       throw new Error(data.error ?? `Signature failed (${res.status})`);
@@ -74,11 +79,15 @@ export default function SignScreen() {
 
     (async () => {
       try {
-        const res = await fetch("/api/settle", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ nonce: Math.random().toString(36).slice(2, 12), expenses }),
-        });
+        const res = await fetchWithin(
+          "/api/settle",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ nonce: Math.random().toString(36).slice(2, 12), expenses }),
+          },
+          70_000,
+        );
         const data = (await res.json()) as {
           scheduleId?: string;
           transfers?: Transfer[];
@@ -101,7 +110,8 @@ export default function SignScreen() {
           // private mode: the done screen just shows pesos
         }
 
-        for (const person of data.transfers.map((t) => t.from).filter((p) => p !== "tu")) {
+        // One signature per person, even if the plan has them paying twice.
+        for (const person of [...new Set(data.transfers.map((t) => t.from))].filter((p) => p !== "tu")) {
           await sign(data.scheduleId, person);
         }
       } catch (e) {
@@ -139,7 +149,7 @@ export default function SignScreen() {
     );
   }
 
-  const payers = transfers.map((t) => t.from);
+  const payers = [...new Set(transfers.map((t) => t.from))];
   const yours = transfers.find((t) => t.from === "tu");
   const receivers = [...new Set(transfers.map((t) => t.to))];
   const othersReady = payers.filter((p) => p !== "tu").every((p) => signed.includes(p));
@@ -193,7 +203,7 @@ export default function SignScreen() {
                   layout
                   transition={{ type: "spring", stiffness: 300, damping: 28 }}
                   className={!done && isYou ? "row awaiting" : "row"}
-                  key={transfer.from}
+                  key={`${transfer.from}-${transfer.to}`}
                   style={!done && isYou ? { background: "var(--surface-2)" } : undefined}
                 >
                   <span className={isYou ? "avatar you" : "avatar"} style={{ width: 34, height: 34 }}>

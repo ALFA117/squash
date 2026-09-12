@@ -87,6 +87,7 @@ export async function fetchPaidPlan(engineUrl: string, body: unknown): Promise<P
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(45_000),
   } satisfies RequestInit;
 
   const paying = await buildFetch(network);

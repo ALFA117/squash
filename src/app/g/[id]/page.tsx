@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/Locale";
 import { PressButton, PressLink } from "@/components/Press";
 import { clearSession, loadSession, saveSession, type GroupSession } from "@/lib/groupSession";
+import { explain, fetchWithin } from "@/lib/http";
 import { formatMoney, formatUsd, type Currency } from "@/lib/money";
 import { formatCents } from "@/lib/netting";
 import { checkShares, parseMoney, type SplitMode } from "@/lib/split";
@@ -65,16 +66,16 @@ export default function GroupRoom() {
   // ── loading and live updates ────────────────────────────────────────────
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(`/api/groups/${id}`, { cache: "no-store" });
+      const res = await fetchWithin(`/api/groups/${id}`, { cache: "no-store" }, 15_000);
       const data = (await res.json()) as { group?: Group; members?: Member[]; error?: string };
       if (!res.ok || !data.group) throw new Error(data.error ?? `Error ${res.status}`);
       setGroup(data.group);
       setMembers(data.members ?? []);
       setLoadError(null);
     } catch (e) {
-      setLoadError((e as Error).message);
+      setLoadError(explain(e, t));
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     setSession(loadSession(id));
@@ -115,23 +116,30 @@ export default function GroupRoom() {
       setBusy(action);
       setActionError(null);
       try {
-        const res = await fetch(`/api/groups/${id}`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action, ...session, ...extra }),
-        });
+        // Locking and confirming wait on Hedera; give them room, but not forever.
+        const res = await fetchWithin(
+          `/api/groups/${id}`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ action, ...session, ...extra }),
+          },
+          action === "lock" || action === "confirm" ? 70_000 : 20_000,
+        );
         const data = (await res.json()) as Record<string, unknown> & { error?: string };
         if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
         await refresh();
         return data;
       } catch (e) {
-        setActionError((e as Error).message);
+        setActionError(explain(e, t));
+        // The server may have finished after we gave up waiting: show what is true.
+        void refresh();
         return null;
       } finally {
         setBusy(null);
       }
     },
-    [id, session, refresh],
+    [id, session, refresh, t],
   );
 
   const me = useMemo(() => members.find((m) => m.id === session?.memberId) ?? null, [members, session]);
@@ -866,16 +874,20 @@ function JoinView({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/groups/${group.id}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "join", name }),
-      });
+      const res = await fetchWithin(
+        `/api/groups/${group.id}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "join", name }),
+        },
+        20_000,
+      );
       const data = (await res.json()) as { memberId?: string; secret?: string; error?: string };
       if (!res.ok || !data.memberId || !data.secret) throw new Error(data.error ?? `Error ${res.status}`);
       onJoined({ memberId: data.memberId, secret: data.secret });
     } catch (err) {
-      setError((err as Error).message);
+      setError(explain(err, t));
       setBusy(false);
     }
   }

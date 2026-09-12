@@ -70,6 +70,7 @@ export async function publishProof(
       process.env.HEDERA_OPERATOR_ID!,
       await parseOperatorKey(process.env.HEDERA_OPERATOR_KEY),
     );
+    client.setRequestTimeout(15_000);
 
     const receipt = await new TopicMessageSubmitTransaction({
       topicId,

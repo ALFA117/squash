@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useLocale } from "@/components/Locale";
 import { PressButton } from "@/components/Press";
 import { saveSession } from "@/lib/groupSession";
+import { explain, fetchWithin } from "@/lib/http";
 import { CURRENCIES, formatUsd, type Currency } from "@/lib/money";
 import { parseMoney } from "@/lib/split";
 import { useUsdRate } from "@/lib/useUsdRate";
@@ -40,11 +41,15 @@ export default function NewBill() {
     setError(null);
 
     try {
-      const res = await fetch("/api/groups", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ adminName: name, groupName: what, totalCents: cents, currency }),
-      });
+      const res = await fetchWithin(
+        "/api/groups",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ adminName: name, groupName: what, totalCents: cents, currency }),
+        },
+        20_000,
+      );
       const data = (await res.json()) as {
         groupId?: string;
         memberId?: string;
@@ -57,7 +62,7 @@ export default function NewBill() {
       saveSession(data.groupId, { memberId: data.memberId, secret: data.secret });
       router.push(`/g/${data.groupId}`);
     } catch (err) {
-      setError((err as Error).message);
+      setError(explain(err, t));
       setBusy(false);
     }
   }

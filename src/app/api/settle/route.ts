@@ -9,6 +9,7 @@ import { scheduleSettlement, scheduleStatus } from "@/lib/scheduled";
 import type { Transfer } from "@/lib/netting";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
  * POST /api/settle — put the whole plan on chain as ONE pending transaction.
