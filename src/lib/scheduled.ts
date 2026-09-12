@@ -118,20 +118,6 @@ export async function scheduleSettlement(
 /**
  * Build a ScheduleSignTransaction and return its bytes for client-side signing.
  */
-export async function buildSignTransactionBytes(
-  scheduleId: string,
-): Promise<Uint8Array> {
-  const { ScheduleSignTransaction } = await import("@hashgraph/sdk");
-  const c = await client();
-  try {
-    const tx = new ScheduleSignTransaction()
-      .setScheduleId(scheduleId)
-      .freezeWith(c);
-    return tx.toBytes();
-  } finally {
-    c.close();
-  }
-}
 
 /**
  * One party adds their signature. The last one triggers execution.

@@ -3,6 +3,7 @@
 import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { formatCents, netExpenses } from "@/lib/netting";
 import { VALLE_DE_BRAVO } from "@/lib/sample";
 import { useLocale } from "@/components/Locale";
 import { useGroup } from "@/components/GroupProvider";
@@ -16,11 +17,16 @@ import { useGroup } from "@/components/GroupProvider";
  */
 export default function JoinScreen() {
   const { login, authenticated, ready, user } = usePrivy();
-  const { syncUser } = useGroup();
+  const { people, expenses: groupExpenses, syncUser } = useGroup();
   const router = useRouter();
   const others = VALLE_DE_BRAVO.people.filter((p) => !p.isYou);
   const { t } = useLocale();
   const userLabel = user?.email?.address || user?.phone?.number || user?.wallet?.address || null;
+  const { balances } = netExpenses(groupExpenses);
+  const currentUser = people.find((p) => p.id === "tu") ?? people[0];
+  const yourBalance = currentUser ? balances[currentUser.id] ?? 0 : 0;
+  const isOwed = yourBalance > 0;
+  const totalSpent = groupExpenses.reduce((sum, expense) => sum + expense.cents, 0);
 
   useEffect(() => {
     if (ready && authenticated) {
@@ -38,8 +44,12 @@ export default function JoinScreen() {
 
   return (
     <main className="phone" style={{ padding: "30px 26px 26px" }}>
-      <div style={{ fontFamily: "var(--f-display)", fontSize: 21, fontWeight: 600, letterSpacing: "-0.02em" }}>
-        Squash
+      <div className="brand-row" aria-label="Squash brand">
+        <img src="/logo.svg" alt="Squash logo" className="brand-mark" />
+        <div className="brand-copy">
+          <span className="brand-name">Squash</span>
+          <span className="brand-tag">shared expense settlement</span>
+        </div>
       </div>
 
       <div
@@ -53,6 +63,17 @@ export default function JoinScreen() {
           textAlign: "center",
         }}
       >
+        <div className="group-qr" aria-label={t("Group invitation code", "Código de invitación del grupo")}>
+          <div className="qr-grid" aria-hidden="true">
+            {Array.from({ length: 36 }).map((_, index) => (
+              <span key={index} className={index % 3 === 0 || index % 7 === 0 ? "qr-dot on" : "qr-dot"} />
+            ))}
+          </div>
+          <div className="qr-code-meta">
+            <span className="label">{t("GROUP CODE", "CÓDIGO DEL GRUPO")}</span>
+            <strong>SQ-VALLE-BRAVO</strong>
+          </div>
+        </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7 }}>
           <span className="label">{t("ROSA INVITED YOU TO", "ROSA TE INVITÓ A")}</span>
           <span
@@ -128,6 +149,57 @@ export default function JoinScreen() {
             )}
           </span>
         </div>
+
+        <div className="join-summary">
+          <div className="join-summary-item">
+            <span className="label">{t("GROUP TOTAL", "TOTAL DEL GRUPO")}</span>
+            <strong>{formatCents(totalSpent)}</strong>
+          </div>
+          <div className="join-summary-item">
+            <span className="label">{t("PARTICIPANTS", "PARTICIPANTES")}</span>
+            <strong>{people.length}</strong>
+          </div>
+        </div>
+
+        <div className="join-steps">
+          <div className="join-step">
+            <span>1</span>
+            <small>{t("Enter with your identity", "Entra con tu identidad")}</small>
+          </div>
+          <div className="join-step">
+            <span>2</span>
+            <small>{t("See your share", "Ve tu cuota")}</small>
+          </div>
+          <div className="join-step">
+            <span>3</span>
+            <small>{t("Confirm and settle", "Confirma y liquida")}</small>
+          </div>
+        </div>
+
+        {authenticated && (
+          <div className="group-preview">
+            <div className="group-preview-row">
+              <span className="label">{t("IDENTITY VERIFIED", "IDENTIDAD VERIFICADA")}</span>
+              <span className="preview-pill settled">{t("Ready", "Listo")}</span>
+            </div>
+
+            <div className="group-preview-grid">
+              <div>
+                <span className="label">{t("YOU", "TÚ")}</span>
+                <strong>{currentUser?.name ?? t("Guest", "Invitado")}</strong>
+              </div>
+              <div>
+                <span className="label">{t("AMOUNT", "MONTO")}</span>
+                <strong>{formatCents(Math.abs(yourBalance))}</strong>
+              </div>
+            </div>
+
+            <div className="group-preview-row compact">
+              <span>{t("Split mode", "Modo de reparto")}</span>
+              <span>{t("Equal by default", "Igual por defecto")}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
@@ -136,7 +208,7 @@ export default function JoinScreen() {
             <path d="M3 8.5h3.2l1.6-2.4h8.4l1.6 2.4H21v10H3z" />
             <circle cx="12" cy="13" r="3.4" />
           </svg>
-          {authenticated ? t("Continue to the group", "Continuar al grupo") : t("Take a selfie", "Tomar selfie")}
+          {authenticated ? t("Continue with Squash", "Continuar con Squash") : t("Join with Privy", "Entrar con Privy")}
         </button>
         {authenticated && userLabel ? (
           <span style={{ fontSize: 11.5, color: "var(--muted)", textAlign: "center" }}>

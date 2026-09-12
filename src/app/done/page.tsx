@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { formatCents } from "@/lib/netting";
-import { personName, VALLE_DE_BRAVO } from "@/lib/sample";
 import { usePlan } from "@/lib/usePlan";
 import { useLocale } from "@/components/Locale";
+import { useGroup } from "@/components/GroupProvider";
 
 /**
  * Settled.
@@ -17,7 +17,8 @@ import { useLocale } from "@/components/Locale";
  * rather than inventing a hash.
  */
 function Done() {
-  const { plan, error } = usePlan(VALLE_DE_BRAVO.expenses);
+  const { name: groupName, people, expenses } = useGroup();
+  const { plan, error } = usePlan(expenses);
   const { t } = useLocale();
   const scheduleId = useSearchParams().get("schedule");
   const [scheduleStatus, setScheduleStatus] = useState<{
@@ -89,6 +90,8 @@ function Done() {
     );
   }
 
+  const personNameFor = (id: string) => people.find((person) => person.id === id)?.name ?? id;
+
   const explorer =
     process.env.NEXT_PUBLIC_HEDERA_NETWORK === "mainnet"
       ? "https://hashscan.io/mainnet"
@@ -133,7 +136,7 @@ function Done() {
           <span style={{ fontFamily: "var(--f-display)", fontSize: 36, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.08 }}>
             {title}
           </span>
-          <span style={{ fontSize: 14, color: "#d3e8dc" }}>Valle de Bravo</span>
+          <span style={{ fontSize: 14, color: "#d3e8dc" }}>{groupName}</span>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "2px 0 4px" }}>
@@ -150,7 +153,7 @@ function Done() {
                 <path d="M4 12.5l5 5L20 6.5" />
               </svg>
               <span className="grow" style={{ fontSize: 14, textAlign: "left" }}>
-                {personName(transfer.from)} <span style={{ color: "#d3e8dc" }}>{t("to", "a")}</span> {personName(transfer.to)}
+                {personNameFor(transfer.from)} <span style={{ color: "#d3e8dc" }}>{t("to", "a")}</span> {personNameFor(transfer.to)}
               </span>
               <span className="money" style={{ fontSize: 14.5 }}>{formatCents(transfer.cents)}</span>
             </div>

@@ -21,6 +21,7 @@ export default function ExpenseScreen() {
   const [amount, setAmount] = useState("564.00");
   const [label, setLabel] = useState(t("Highway tolls", "Casetas de la autopista"));
   const [payer, setPayer] = useState("tu");
+  const [splitMode, setSplitMode] = useState<"equal" | "custom">("equal");
   const [among, setAmong] = useState<string[]>(people.map((p) => p.id));
 
   const cents = useMemo(() => {
@@ -28,13 +29,15 @@ export default function ExpenseScreen() {
     return Math.round(rawAmount * 100);
   }, [amount]);
 
+  const finalAmong = splitMode === "equal" ? people.map((p) => p.id) : among;
+
   const shares = useMemo(() => {
-    const k = among.length;
+    const k = finalAmong.length;
     if (k === 0) return new Map<string, number>();
     const base = Math.floor(cents / k);
     const remainder = cents - base * k;
-    return new Map(among.map((id, i) => [id, base + (i < remainder ? 1 : 0)]));
-  }, [cents, among]);
+    return new Map(finalAmong.map((id, i) => [id, base + (i < remainder ? 1 : 0)]));
+  }, [cents, finalAmong]);
 
   const toggle = (id: string) =>
     setAmong((current) =>
@@ -97,20 +100,43 @@ export default function ExpenseScreen() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span className="label">{t("SPLIT BETWEEN", "SE DIVIDE ENTRE")}</span>
             <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
-              {among.length} {t("of", "de")} {people.length}
+              {finalAmong.length} {t("of", "de")} {people.length}
             </span>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className={splitMode === "equal" ? "chip chip-on" : "chip"}
+              onClick={() => setSplitMode("equal")}
+            >
+              {t("Equal split", "Partes iguales")}
+            </button>
+            <button
+              type="button"
+              className={splitMode === "custom" ? "chip chip-on" : "chip"}
+              onClick={() => setSplitMode("custom")}
+            >
+              {t("Custom", "Personalizado")}
+            </button>
           </div>
 
           <div className="card">
             {people.map((p) => {
-              const on = among.includes(p.id);
+              const on = finalAmong.includes(p.id);
+              const isSelectable = splitMode === "custom";
+
               return (
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => toggle(p.id)}
+                  onClick={() => {
+                    if (isSelectable) toggle(p.id);
+                  }}
                   className="row split-row"
                   aria-pressed={on}
+                  disabled={!isSelectable}
+                  style={{ opacity: isSelectable ? 1 : 0.9 }}
                 >
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={on ? "var(--settled)" : "var(--rule)"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 12.5l5 5L20 6.5" />
@@ -135,13 +161,13 @@ export default function ExpenseScreen() {
         <button
           type="button"
           className="btn btn-dark"
-          disabled={cents <= 0 || among.length === 0}
+          disabled={cents <= 0 || finalAmong.length === 0}
           onClick={() => {
             addExpense({
               label,
               payer,
               cents,
-              among,
+              among: finalAmong,
             });
             router.push("/grupo");
           }}

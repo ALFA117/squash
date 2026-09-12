@@ -4,7 +4,13 @@ import { PrivyProvider } from "@privy-io/react-auth";
 import { GroupProvider } from "./GroupProvider";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmtwl2qcb00500djm14bkfixg";
+  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+
+  // Privy is used for sign-in only. With no App ID configured the app still
+  // runs — every screen works without it — rather than failing to render.
+  if (!appId) {
+    return <GroupProvider>{children}</GroupProvider>;
+  }
 
   return (
     <PrivyProvider
@@ -14,7 +20,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           accentColor: "#0b6b4f",
           theme: "#edefec",
           showWalletLoginFirst: false,
-          logo: "/logo.svg", // Asumimos que hay un logo o se puede omitir
+          logo: "/logo.svg",
         },
         embeddedWallets: {
           ethereum: {

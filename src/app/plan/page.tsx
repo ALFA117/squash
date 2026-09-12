@@ -10,7 +10,7 @@ import { usePlan } from "@/lib/usePlan";
 import { useLocale } from "@/components/Locale";
 
 export default function PlanScreen() {
-  const { people, expenses: groupExpenses } = useGroup();
+  const { people, expenses: groupExpenses, confirmed } = useGroup();
   const { plan, error } = usePlan(groupExpenses);
   const { t } = useLocale();
   const reducedMotion = useReducedMotion();
@@ -24,6 +24,8 @@ export default function PlanScreen() {
     name: p.name,
     isYou: p.isYou,
   }));
+  const confirmedCount = people.filter((p) => confirmed[p.id]).length;
+  const allConfirmed = confirmedCount === people.length && people.length > 0;
 
   const personNameFor = (id: string) => people.find((p) => p.id === id)?.name ?? id;
   const personInitialFor = (id: string) => people.find((p) => p.id === id)?.initial ?? id[0]?.toUpperCase() ?? "?";
@@ -53,8 +55,32 @@ export default function PlanScreen() {
             initial={reducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={entrance}
-            style={{ padding: "0 22px", display: "flex", flexDirection: "column", gap: 4 }}
+            style={{ padding: "0 22px", display: "flex", flexDirection: "column", gap: 6 }}
           >
+            <div
+              className="card"
+              style={{
+                padding: "12px 14px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <span className="label">{t("GROUP READY", "GRUPO LISTO")}</span>
+                <strong style={{ fontFamily: "var(--f-mono)", fontSize: 18, letterSpacing: "-0.02em" }}>
+                  {confirmedCount}/{people.length}
+                </strong>
+              </div>
+              <span
+                className={allConfirmed ? "preview-pill settled" : "preview-pill owed"}
+                style={{ textTransform: "uppercase" }}
+              >
+                {allConfirmed ? t("Confirmed", "Confirmado") : t("Pending", "Pendiente")}
+              </span>
+            </div>
+
             <div style={{ display: "flex", alignItems: "baseline", gap: 13 }}>
               <span className="headline-count" style={{ color: "var(--owed)" }}>
                 {plan.grossEdges.length}
@@ -143,8 +169,22 @@ export default function PlanScreen() {
               </span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{plan.price.hbar} ℏ</span>
             </div>
-            <Link className="btn btn-settle" href="/sign">
-              {t("Confirm and sign", "Confirmar y firmar")}
+            {!allConfirmed && (
+              <span style={{ fontSize: 12.5, color: "var(--muted)", textAlign: "center" }}>
+                {t("Everyone must confirm before the group can sign and settle.", "Todos deben confirmar antes de que el grupo pueda firmar y liquidar.")}
+              </span>
+            )}
+            <Link
+              className={allConfirmed ? "btn btn-settle" : "btn btn-settle"}
+              href={allConfirmed ? "/sign" : "#"}
+              onClick={(event) => {
+                if (!allConfirmed) {
+                  event.preventDefault();
+                }
+              }}
+              style={{ opacity: allConfirmed ? 1 : 0.6, pointerEvents: allConfirmed ? "auto" : "none" }}
+            >
+              {allConfirmed ? t("Confirm and sign", "Confirmar y firmar") : t("Waiting for confirmations", "Esperando confirmaciones")}
             </Link>
           </motion.div>
         </>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { accountMap, centsToTinybars, demoAccounts } from "@/lib/demoAccounts";
 import { fetchPaidPlan } from "@/lib/payingClient";
 import { VALLE_DE_BRAVO } from "@/lib/sample";
+import { validateExpenses } from "@/lib/validateExpenses";
 import { scheduleSettlement, scheduleStatus } from "@/lib/scheduled";
 import type { Transfer } from "@/lib/netting";
 
@@ -26,9 +27,13 @@ export async function POST(request: Request) {
   }
 
   let nonce: string;
+  let expensesInput: unknown = VALLE_DE_BRAVO.expenses;
   try {
-    const body = (await request.json()) as { nonce?: string };
+    const body = (await request.json()) as { nonce?: string; expenses?: unknown };
     nonce = String(body.nonce ?? "").slice(0, 24);
+    // Settle exactly the expenses the person was shown the plan for. Without
+    // this the screen could display one plan and put a different one on chain.
+    if (body.expenses !== undefined) expensesInput = body.expenses;
   } catch {
     nonce = "";
   }
@@ -36,9 +41,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "nonce is required" }, { status: 400 });
   }
 
+  const checked = validateExpenses(expensesInput);
+  if (!checked.ok) {
+    return NextResponse.json({ error: checked.error }, { status: 400 });
+  }
+
   try {
     const engineUrl = new URL("/api/v1/net", request.url).toString();
-    const plan = await fetchPaidPlan(engineUrl, { expenses: VALLE_DE_BRAVO.expenses });
+    const plan = await fetchPaidPlan(engineUrl, { expenses: checked.expenses });
     const transfers = plan.transfers as Transfer[];
 
     const schedule = await scheduleSettlement(transfers, accounts, centsToTinybars, nonce);

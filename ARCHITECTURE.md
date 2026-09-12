@@ -22,7 +22,30 @@ The application utilizes `x402` patterns to gate-keep access. The netting engine
 
 ## Transaction Flow
 
-1.  **Join:** User authenticates via Privy.
-2.  **Plan:** The netting engine computes the optimal settlement plan based on input expenses.
-3.  **Sign:** The app prepares the `ScheduleCreateTransaction`. Participants use their Privy embedded wallet to sign their specific transfer portion.
-4.  **Settle:** Once all required signatures are gathered, the scheduled transaction executes on the Hedera network, finalizing all settlements instantly.
+1. **Join:** User authenticates via Privy.
+2. **Plan:** The netting engine computes the optimal settlement plan based on input expenses.
+3. **Sign:** The app prepares the `ScheduleCreateTransaction`. Participants use their Privy embedded wallet to sign their specific transfer portion.
+4. **Settle:** Once all required signatures are gathered, the scheduled transaction executes on the Hedera network, finalizing all settlements instantly.
+
+## System Diagram
+
+```mermaid
+flowchart LR
+    U[User] --> J[Join flow / Privy auth]
+    J --> G[Group state + expenses]
+    G --> E[Netting engine<br/>src/lib/netting.ts]
+    E --> P[API /api/plan<br/>priced via x402]
+    P --> S[Plan screen]
+    S --> T[Schedule create + sign flow]
+    T --> W[Privy embedded wallets]
+    W --> H[Hedera scheduled transaction]
+    H --> D[Done screen + explorer receipt]
+
+    E --> Proof[HCS proof publication]
+    Proof --> D
+```
+
+## Practical Notes
+- The UI is intentionally designed as a demo front end for a real product workflow.
+- The core product is the netting engine, not the wallet handling itself.
+- The system is structured so the business logic can be reused from any future client, not only the Next.js app.

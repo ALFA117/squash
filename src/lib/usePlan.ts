@@ -26,9 +26,14 @@ export function usePlan(expenses: Expense[]) {
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Every fetch here spends the app's balance buying a netting run. Keying the
+  // effect on the CONTENT rather than the array reference means a re-render
+  // that hands over an equal-but-new array does not buy the same plan twice.
+  const key = JSON.stringify(expenses);
+
   useEffect(() => {
     if (expenses.length === 0) return;
-    
+
     let cancelled = false;
 
     // The app's own endpoint, which pays the engine on the server's behalf.
@@ -52,7 +57,8 @@ export function usePlan(expenses: Expense[]) {
     return () => {
       cancelled = true;
     };
-  }, [expenses]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on content
+  }, [key]);
 
   return { plan, error };
 }

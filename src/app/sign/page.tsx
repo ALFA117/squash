@@ -8,7 +8,6 @@ import { PayingNotice } from "@/components/PayingNotice";
 import { useGroup } from "@/components/GroupProvider";
 import { formatCents, type Transfer } from "@/lib/netting";
 import { useLocale } from "@/components/Locale";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 /**
  * Waiting for signatures.
@@ -26,7 +25,7 @@ import { usePrivy, useWallets } from "@privy-io/react-auth";
 export default function SignScreen() {
   const router = useRouter();
   const { t, locale } = useLocale();
-  const { people } = useGroup();
+  const { people, expenses } = useGroup();
 
   const [scheduleId, setScheduleId] = useState<string | null>(null);
   const [transfers, setTransfers] = useState<Transfer[] | null>(null);
@@ -35,82 +34,33 @@ export default function SignScreen() {
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
 
-  const { user, ready: privyReady, authenticated } = usePrivy();
-  const { wallets } = useWallets();
-
-  const wallet =
-    wallets.find(
-      (candidate: any) =>
-        candidate?.address?.toLowerCase() === user?.wallet?.address?.toLowerCase(),
-    ) ?? wallets[0] ?? null;
-
-  const walletPublicKey = (user as any)?.wallet?.publicKey ?? (wallet as any)?.publicKey ?? null;
   const personNameFor = (id: string) => people.find((p) => p.id === id)?.name ?? id;
-  const personInitialFor = (id: string) => people.find((p) => p.id === id)?.initial ?? id[0]?.toUpperCase() ?? "?";
+  const personInitialFor = (id: string) =>
+    people.find((p) => p.id === id)?.initial ?? id[0]?.toUpperCase() ?? "?";
 
-  const hasRealWallet = Boolean(wallet && walletPublicKey);
-  const walletStateMessage = !authenticated
-    ? t("Sign in with Privy to confirm your part.", "Inicia sesión con Privy para confirmar tu parte.")
-    : !hasRealWallet
-      ? t("This session does not expose a Privy wallet yet. Connect or create one to sign the schedule.", "Esta sesión todavía no expone una wallet de Privy. Conecta o crea una para firmar el schedule.")
-      : null;
-  
+  /**
+   * One party adds their signature to the scheduled settlement.
+   *
+   * Goes through /api/settle/sign, which signs with that party's own testnet
+   * account. This is the route that was verified on chain on 9 and 12 Sep.
+   *
+   * A Privy wallet cannot stand in here: it is a fresh Ethereum key that does
+   * not control the debtor's Hedera account, and personal_sign is not a
+   * Hedera signature. See CONTINUACION.md section 0.
+   */
   const sign = useCallback(async (id: string, person: string) => {
-    if (!privyReady) {
-      throw new Error("Privy is still loading. Please wait a moment and try again.");
-    }
-
-    if (!authenticated) {
-      throw new Error("Please sign in with Privy before confirming your part.");
-    }
-
-    if (!wallet || !walletPublicKey) {
-      throw new Error("This session does not expose a Privy wallet yet. Connect or create one and try again.");
-    }
-
-    const prepareRes = await fetch("/api/settle/sign/prepare", {
+    const res = await fetch("/api/settle/sign", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scheduleId: id }),
+      body: JSON.stringify({ scheduleId: id, person }),
     });
-
-    if (!prepareRes.ok) {
-      throw new Error("Failed to prepare transaction");
+    const data = (await res.json()) as { executed?: boolean; error?: string };
+    if (!res.ok || data.error) {
+      throw new Error(data.error ?? `Signature failed (${res.status})`);
     }
-
-    const { bytes } = (await prepareRes.json()) as { bytes: number[] };
-
-    const hex = `0x${Array.from(bytes)
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("")}`;
-
-    const signatureHex = await wallet.sign(hex);
-
-    const submitRes = await fetch("/api/settle/sign/submit", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        scheduleId: id,
-        bytes: btoa(String.fromCharCode(...bytes)),
-        signature: signatureHex,
-        publicKey: walletPublicKey,
-      }),
-    });
-
-    if (!submitRes.ok) {
-      throw new Error("Failed to submit transaction");
-    }
-
-    const data = (await submitRes.json()) as {
-      success?: boolean;
-      executed?: boolean;
-      error?: string;
-    };
-    if (data.error) throw new Error(data.error);
-
     setSigned((current) => (current.includes(person) ? current : [...current, person]));
     return Boolean(data.executed);
-  }, [authenticated, privyReady, wallet, walletPublicKey]);
+  }, []);
 
   // Put the plan on chain, then let the other debtors sign. Each signature is
   // a real transaction, so they land one at a time and the list fills in.
@@ -123,7 +73,7 @@ export default function SignScreen() {
         const res = await fetch("/api/settle", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ nonce: Math.random().toString(36).slice(2, 12) }),
+          body: JSON.stringify({ nonce: Math.random().toString(36).slice(2, 12), expenses }),
         });
         const data = (await res.json()) as {
           scheduleId?: string;
@@ -137,10 +87,8 @@ export default function SignScreen() {
         setScheduleId(data.scheduleId);
         setTransfers(data.transfers);
 
-        if (hasRealWallet) {
-          for (const person of data.transfers.map((t) => t.from).filter((p) => p !== "tu")) {
-            await sign(data.scheduleId, person);
-          }
+        for (const person of data.transfers.map((t) => t.from).filter((p) => p !== "tu")) {
+          await sign(data.scheduleId, person);
         }
       } catch (e) {
         setError((e as Error).message);
@@ -194,21 +142,6 @@ export default function SignScreen() {
       </div>
 
       <div style={{ padding: "0 22px", display: "flex", flexDirection: "column", gap: 18, flexGrow: 1 }}>
-        {walletStateMessage && (
-          <div
-            style={{
-              border: "1px solid var(--rule)",
-              background: "var(--surface-2)",
-              borderRadius: 10,
-              padding: "10px 12px",
-              fontSize: 12,
-              color: "var(--muted)",
-              lineHeight: 1.45,
-            }}
-          >
-            {walletStateMessage}
-          </div>
-        )}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
             <span className="headline-count" style={{ fontSize: 40 }}>

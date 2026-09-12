@@ -7,10 +7,14 @@ import { useGroup } from "@/components/GroupProvider";
 
 export default function GroupScreen() {
   const { t, locale } = useLocale();
-  const { name, people, expenses: groupExpenses, addPerson } = useGroup();
+  const { name, people, expenses: groupExpenses, confirmed, addPerson, confirmParticipation, resetGroup } = useGroup();
   const { balances, grossEdges } = netExpenses(groupExpenses);
-  const you = people.find((p) => p.isYou) ?? people[0];
+  const you = people.find((p) => p.id === "tu") ?? people[0];
   const yourBalance = balances[you.id] ?? 0;
+  const totalSpent = groupExpenses.reduce((sum, expense) => sum + expense.cents, 0);
+  const peopleWhoOwe = people.filter((p) => (balances[p.id] ?? 0) < 0).length;
+  const peopleOwed = people.filter((p) => (balances[p.id] ?? 0) > 0).length;
+  const settledPeople = people.filter((p) => (balances[p.id] ?? 0) === 0).length;
 
   const personNameFor = (id: string) => people.find((p) => p.id === id)?.name ?? id;
   const personInitialFor = (id: string) => people.find((p) => p.id === id)?.initial ?? id[0]?.toUpperCase() ?? "?";
@@ -20,6 +24,18 @@ export default function GroupScreen() {
     .map((p) => p.name);
 
   const expenses = [...groupExpenses].sort((a, b) => b.cents - a.cents);
+
+  const confirmedCount = people.filter((p) => confirmed[p.id]).length;
+
+  const handleResetDemo = () => {
+    if (window.confirm(t("Reset the demo group to the original trip?", "¿Reiniciar el grupo demo al viaje original?"))) {
+      resetGroup();
+    }
+  };
+
+  const handleConfirm = () => {
+    confirmParticipation(you.id);
+  };
 
   return (
     <main className="phone">
@@ -117,6 +133,102 @@ export default function GroupScreen() {
         <span style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
           {creditors.join(", ").replace(/, ([^,]*)$/, locale === "es" ? " y $1" : " and $1")} {t("paid more than their share.", "pusieron de más.")}
         </span>
+      </section>
+
+      <section className="group-summary">
+        <div className="summary-grid">
+          <div className="summary-card">
+            <span className="label">{t("TOTAL SPENT", "TOTAL GASTADO")}</span>
+            <strong>{formatCents(totalSpent)}</strong>
+            <small>{groupExpenses.length} {t("expenses", "gastos")}</small>
+          </div>
+          <div className="summary-card">
+            <span className="label">{t("CROSS-OWED", "DEUDAS CRUZADAS")}</span>
+            <strong>{grossEdges.length}</strong>
+            <small>{t("open obligations", "obligaciones abiertas")}</small>
+          </div>
+          <div className="summary-card">
+            <span className="label">{t("OWED TO YOU", "TE DEBEN")}</span>
+            <strong>{peopleOwed}</strong>
+            <small>{t("people", "personas")}</small>
+          </div>
+          <div className="summary-card">
+            <span className="label">{t("YOU OWE", "DEBES")}</span>
+            <strong>{peopleWhoOwe}</strong>
+            <small>{t("people", "personas")}</small>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Link href="/expense" className="btn btn-settle" style={{ width: "auto", flex: "1 1 180px", minHeight: 46, height: 46 }}>
+            {t("Add expense", "Agregar gasto")}
+          </Link>
+          <button
+            type="button"
+            className="btn"
+            style={{ width: "auto", flex: "1 1 140px", minHeight: 46, height: 46, background: "var(--surface)", color: "var(--ink)" }}
+            onClick={handleResetDemo}
+          >
+            {t("Reset demo", "Reiniciar demo")}
+          </button>
+        </div>
+      </section>
+
+      <section style={{ padding: "18px 22px 0" }}>
+        <div className="card confirmation-card">
+          <div className="participant-panel-head">
+            <span className="label">{t("CONFIRMATION", "CONFIRMACIÓN")}</span>
+            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{confirmedCount}/{people.length}</span>
+          </div>
+
+          <div className="confirmation-body">
+            <div>
+              <span className="label">{t("YOUR STATUS", "TU ESTADO")}</span>
+              <strong>{confirmed[you.id] ? t("Confirmed", "Confirmado") : t("Pending", "Pendiente")}</strong>
+            </div>
+            <button
+              type="button"
+              className="btn btn-settle"
+              style={{ width: "auto", minWidth: 150, padding: "0 16px" }}
+              onClick={handleConfirm}
+              disabled={confirmed[you.id]}
+            >
+              {confirmed[you.id] ? t("Confirmed", "Confirmado") : t("Confirm my part", "Confirmar mi parte")}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding: "18px 22px 0" }}>
+        <div className="card participant-panel">
+          <div className="participant-panel-head">
+            <span className="label">{t("PARTICIPANTS", "PARTICIPANTES")}</span>
+            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{settledPeople} {t("settled", "en cero")}</span>
+          </div>
+
+          {people.map((p) => {
+            const balance = balances[p.id] ?? 0;
+            const status =
+              balance > 0
+                ? t("is owed", "te debe")
+                : balance < 0
+                  ? t("owes", "debe")
+                  : t("settled", "en cero");
+
+            return (
+              <div className="row participant-row" key={p.id}>
+                <div className={p.id === "tu" ? "avatar you" : "avatar"}>{p.initial}</div>
+                <div className="grow participant-meta">
+                  <span>{p.name}</span>
+                  <small>{status}</small>
+                </div>
+                <div className={balance > 0 ? "balance-chip settled" : balance < 0 ? "balance-chip owed" : "balance-chip neutral"}>
+                  {formatCents(balance)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       <section style={{ padding: "18px 22px 0" }}>

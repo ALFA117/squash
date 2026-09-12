@@ -19,6 +19,45 @@ export default function Landing() {
 
   return (
     <main className="landing">
+      <div className="lp-brand" aria-label="Squash logo">
+        <svg className="lp-brand-svg" viewBox="0 0 760 620" role="img" aria-hidden="true">
+          <g fill="none" stroke="var(--ink)" strokeWidth="4.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M110 270 L190 175 L270 230 L358 145 L448 185 L540 140 L625 200 L666 288 L640 382 L694 454 L588 525 L483 503 L382 560 L280 520 L180 555 L108 495 L72 410 L93 320 L110 270 Z" opacity="0.82"/>
+            <path d="M190 175 L270 230 L358 145 L448 185 L540 140 L625 200 L540 285 L382 300 L270 230 L190 175 Z" opacity="0.78"/>
+            <path d="M270 230 L382 300 L448 185 L540 285 L625 200 L574 360 L483 503 L382 560 L280 520 L180 555 L150 425 L210 320 L270 230 Z" opacity="0.7"/>
+            <path d="M162 328 C236 248, 356 248, 430 328 C356 410, 236 410, 162 328 Z"/>
+            <path d="M225 328 C280 284, 350 284, 407 328 C350 373, 280 373, 225 328 Z"/>
+            <path d="M204 330 C236 295 280 278 322 280 C286 310 234 334 204 330 Z" opacity="0.35"/>
+            <path d="M445 328 C505 285 552 286 597 328 C548 373 496 376 445 328 Z" opacity="0.3"/>
+            <circle cx="110" cy="270" r="8" fill="var(--ink)" stroke="none"/>
+            <circle cx="190" cy="175" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="270" cy="230" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="358" cy="145" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="448" cy="185" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="540" cy="140" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="625" cy="200" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="666" cy="288" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="640" cy="382" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="694" cy="454" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="588" cy="525" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="483" cy="503" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="382" cy="560" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="280" cy="520" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="180" cy="555" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="108" cy="495" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="72" cy="410" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="93" cy="320" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="150" cy="425" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="210" cy="320" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="540" cy="285" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="382" cy="300" r="7" fill="var(--ink)" stroke="none"/>
+            <circle cx="382" cy="328" r="9" fill="var(--surface)" stroke="var(--ink)" strokeWidth="4.2"/>
+            <circle cx="382" cy="328" r="18" fill="none" stroke="var(--ink)" strokeWidth="4.2"/>
+          </g>
+        </svg>
+        <div className="lp-brand-word">SQUASH</div>
+      </div>
+
       <header className="lp-hero">
         <span className="lp-word">Squash</span>
 

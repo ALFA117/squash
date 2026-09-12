@@ -9,8 +9,11 @@ interface GroupContextType {
   dates: string;
   people: Person[];
   expenses: Expense[];
+  confirmed: Record<string, boolean>;
   addExpense: (expense: Omit<Expense, "id">) => void;
   addPerson: (name: string) => void;
+  confirmParticipation: (personId: string) => void;
+  resetGroup: () => void;
   syncUser: (user: any) => void;
 }
 
@@ -19,13 +22,15 @@ const GroupContext = createContext<GroupContextType | undefined>(undefined);
 export function GroupProvider({ children }: { children: React.ReactNode }) {
   const [people, setPeople] = useState<Person[]>(VALLE_DE_BRAVO.people);
   const [expenses, setExpenses] = useState<Expense[]>(VALLE_DE_BRAVO.expenses);
+  const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
     const savedPeople = localStorage.getItem("squash-people");
     const savedExpenses = localStorage.getItem("squash-expenses");
-    
+    const savedConfirmed = localStorage.getItem("squash-confirmed");
+
     if (savedPeople && savedExpenses) {
       setPeople(JSON.parse(savedPeople));
       setExpenses(JSON.parse(savedExpenses));
@@ -33,6 +38,11 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       setPeople(VALLE_DE_BRAVO.people);
       setExpenses(VALLE_DE_BRAVO.expenses);
     }
+
+    if (savedConfirmed) {
+      setConfirmed(JSON.parse(savedConfirmed));
+    }
+
     setIsLoaded(true);
   }, []);
 
@@ -41,8 +51,9 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
     if (isLoaded) {
       localStorage.setItem("squash-people", JSON.stringify(people));
       localStorage.setItem("squash-expenses", JSON.stringify(expenses));
+      localStorage.setItem("squash-confirmed", JSON.stringify(confirmed));
     }
-  }, [people, expenses, isLoaded]);
+  }, [people, expenses, confirmed, isLoaded]);
 
   const addExpense = (newExpense: Omit<Expense, "id">) => {
     const expense: Expense = {
@@ -73,6 +84,17 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
         },
       ];
     });
+  };
+
+  const resetGroup = () => {
+    setPeople(VALLE_DE_BRAVO.people);
+    setExpenses(VALLE_DE_BRAVO.expenses);
+    setConfirmed({});
+  };
+
+  const confirmParticipation = (personId: string) => {
+    if (!personId) return;
+    setConfirmed((current) => ({ ...current, [personId]: true }));
   };
 
   const syncUser = (privyUser: any) => {
@@ -124,8 +146,11 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
         dates: VALLE_DE_BRAVO.dates,
         people,
         expenses,
+        confirmed,
         addExpense,
         addPerson,
+        confirmParticipation,
+        resetGroup,
         syncUser,
       }}
     >
