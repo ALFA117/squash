@@ -20,7 +20,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           accentColor: "#0b6b4f",
           theme: "#edefec",
           showWalletLoginFirst: false,
-          logo: "/logo.svg",
+          logo: "/brand/mark.png",
         },
         embeddedWallets: {
           ethereum: {

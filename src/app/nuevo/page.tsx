@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { useLocale } from "@/components/Locale";
+import { PressButton } from "@/components/Press";
 import { saveSession } from "@/lib/groupSession";
+import { CURRENCIES, formatUsd, type Currency } from "@/lib/money";
 import { parseMoney } from "@/lib/split";
+import { useUsdRate } from "@/lib/useUsdRate";
 
 /**
  * Start a bill.
@@ -20,6 +24,9 @@ export default function NewBill() {
   const [name, setName] = useState("");
   const [what, setWhat] = useState("");
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState<Currency>("MXN");
+  const rate = useUsdRate(currency);
+  const reduce = useReducedMotion();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +43,7 @@ export default function NewBill() {
       const res = await fetch("/api/groups", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ adminName: name, groupName: what, totalCents: cents }),
+        body: JSON.stringify({ adminName: name, groupName: what, totalCents: cents, currency }),
       });
       const data = (await res.json()) as {
         groupId?: string;
@@ -64,6 +71,7 @@ export default function NewBill() {
           </svg>
         </Link>
         <h1 className="title">{t("Split a bill", "Dividir una cuenta")}</h1>
+        <img src="/brand/mark.webp" alt="" width={30} height={30} className="head-mark" />
       </div>
 
       <form onSubmit={submit} className="bill-form">
@@ -99,6 +107,33 @@ export default function NewBill() {
           />
         </label>
 
+        <div className="field">
+          <span className="label" id="currency-label">{t("PAID IN", "PAGASTE EN")}</span>
+          <div className="segmented" role="radiogroup" aria-labelledby="currency-label">
+            {CURRENCIES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                role="radio"
+                aria-checked={currency === c}
+                className={currency === c ? "segment on" : "segment"}
+                onClick={() => setCurrency(c)}
+              >
+                {currency === c && (
+                  <motion.span
+                    layoutId="currency-pill"
+                    className="segment-pill"
+                    transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <span className="segment-text">
+                  {c === "MXN" ? t("Pesos · MXN", "Pesos · MXN") : t("Dollars · USD", "Dólares · USD")}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <label className="field">
           <span className="label">{t("THE WHOLE BILL", "LA CUENTA COMPLETA")}</span>
           <div className="money-input">
@@ -112,13 +147,23 @@ export default function NewBill() {
               aria-invalid={amount !== "" && cents === null}
               required
             />
-            <span className="money-unit">MXN</span>
+            <span className="money-unit">{currency}</span>
           </div>
           <span id="amount-help" className="field-help">
             {amount !== "" && cents === null
               ? t("That doesn't look like an amount — try 2500 or 2,500.00", "Eso no parece un monto — prueba 2500 o 2,500.00")
               : t("The full amount you paid, tip included.", "Todo lo que pagaste, propina incluida.")}
           </span>
+          {currency === "MXN" && cents !== null && cents > 0 && (
+            <span className="fx-estimate" aria-live="polite">
+              {rate
+                ? t(
+                    `≈ ${formatUsd(Math.round(cents * rate.usdPerUnit))} today — it settles in dollars`,
+                    `≈ ${formatUsd(Math.round(cents * rate.usdPerUnit))} hoy — se liquida en dólares`,
+                  )
+                : t("Getting today's dollar rate…", "Consultando el dólar de hoy…")}
+            </span>
+          )}
         </label>
 
         {error && (
@@ -128,9 +173,9 @@ export default function NewBill() {
         )}
 
         <div className="bill-actions">
-          <button type="submit" className="btn btn-settle" disabled={!ready}>
+          <PressButton type="submit" className="btn btn-dark" disabled={!ready}>
             {busy ? t("Creating…", "Creando…") : t("Create and get the QR", "Crear y obtener el QR")}
-          </button>
+          </PressButton>
         </div>
       </form>
     </main>

@@ -19,17 +19,18 @@ export default function ExpenseScreen() {
   const { people, addExpense } = useGroup();
 
   const [amount, setAmount] = useState("564.00");
-  const [label, setLabel] = useState(t("Highway tolls", "Casetas de la autopista"));
+  const [label, setLabel] = useState("");
   const [payer, setPayer] = useState("tu");
-  const [splitMode, setSplitMode] = useState<"equal" | "custom">("equal");
   const [among, setAmong] = useState<string[]>(people.map((p) => p.id));
+  const everyone = among.length === people.length;
 
   const cents = useMemo(() => {
     const rawAmount = parseFloat(amount.replace(/,/g, "")) || 0;
     return Math.round(rawAmount * 100);
   }, [amount]);
 
-  const finalAmong = splitMode === "equal" ? people.map((p) => p.id) : among;
+  // Keep the group's order, so the cent remainder goes where the engine puts it.
+  const finalAmong = people.map((p) => p.id).filter((id) => among.includes(id));
 
   const shares = useMemo(() => {
     const k = finalAmong.length;
@@ -64,8 +65,9 @@ export default function ExpenseScreen() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               inputMode="decimal"
-              aria-label={t("Amount", "Monto")}
+              aria-label={t("Amount in pesos", "Monto en pesos")}
             />
+            <span style={{ fontFamily: "var(--f-mono)", fontSize: 13, color: "var(--muted)" }}>MXN</span>
           </div>
         </div>
 
@@ -75,6 +77,7 @@ export default function ExpenseScreen() {
             className="text-input"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
+            placeholder={t("Highway tolls", "Casetas de la autopista")}
             aria-label={t("Description", "Concepto")}
           />
         </div>
@@ -104,51 +107,43 @@ export default function ExpenseScreen() {
             </span>
           </div>
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <button
               type="button"
-              className={splitMode === "equal" ? "chip chip-on" : "chip"}
-              onClick={() => setSplitMode("equal")}
+              className={everyone ? "chip chip-on" : "chip"}
+              aria-pressed={everyone}
+              onClick={() => setAmong(people.map((p) => p.id))}
             >
-              {t("Equal split", "Partes iguales")}
+              {t("Everyone", "Todos")}
             </button>
-            <button
-              type="button"
-              className={splitMode === "custom" ? "chip chip-on" : "chip"}
-              onClick={() => setSplitMode("custom")}
-            >
-              {t("Custom", "Personalizado")}
-            </button>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>
+              {t("Tap someone to leave them out", "Toca a alguien para dejarlo fuera")}
+            </span>
           </div>
 
           <div className="card">
             {people.map((p) => {
               const on = finalAmong.includes(p.id);
-              const isSelectable = splitMode === "custom";
 
               return (
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => {
-                    if (isSelectable) toggle(p.id);
-                  }}
+                  onClick={() => toggle(p.id)}
                   className="row split-row"
                   aria-pressed={on}
-                  disabled={!isSelectable}
-                  style={{ opacity: isSelectable ? 1 : 0.9 }}
                 >
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={on ? "var(--settled)" : "var(--rule)"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 12.5l5 5L20 6.5" />
                   </svg>
-                  <span className="grow" style={{ fontSize: 14.5, textAlign: "left" }}>
+                  <span
+                    className="grow"
+                    style={{ fontSize: 14.5, textAlign: "left", color: on ? "var(--ink)" : "var(--muted)", textDecoration: on ? "none" : "line-through" }}
+                  >
                     {p.name}
                   </span>
-                  <span
-                    className="money"
-                    style={{ fontSize: 13.5, color: on ? "var(--muted)" : "var(--rule)" }}
-                  >
-                    {formatCents(shares.get(p.id) ?? 0)}
+                  <span className="money" style={{ fontSize: 13.5, color: on ? "var(--ink)" : "var(--muted)" }}>
+                    {on ? formatCents(shares.get(p.id) ?? 0) : t("out", "fuera")}
                   </span>
                 </button>
               );
@@ -164,7 +159,7 @@ export default function ExpenseScreen() {
           disabled={cents <= 0 || finalAmong.length === 0}
           onClick={() => {
             addExpense({
-              label,
+              label: label.trim() || t("Highway tolls", "Casetas de la autopista"),
               payer,
               cents,
               among: finalAmong,

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { PayingNotice } from "@/components/PayingNotice";
 import { useGroup } from "@/components/GroupProvider";
+import { formatUsd } from "@/lib/money";
 import { formatCents, type Transfer } from "@/lib/netting";
 import { useLocale } from "@/components/Locale";
 
@@ -29,6 +30,9 @@ export default function SignScreen() {
 
   const [scheduleId, setScheduleId] = useState<string | null>(null);
   const [transfers, setTransfers] = useState<Transfer[] | null>(null);
+  // What each transfer moves on chain, in US cents (tUSD), keyed "from-to".
+  const [usd, setUsd] = useState<Record<string, number>>({});
+  const [usdRate, setUsdRate] = useState<number | null>(null);
   const [signed, setSigned] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +82,8 @@ export default function SignScreen() {
         const data = (await res.json()) as {
           scheduleId?: string;
           transfers?: Transfer[];
+          usdTransfers?: Transfer[];
+          rate?: { usdPerUnit: number };
           error?: string;
         };
         if (data.error || !data.scheduleId || !data.transfers) {
@@ -86,6 +92,14 @@ export default function SignScreen() {
 
         setScheduleId(data.scheduleId);
         setTransfers(data.transfers);
+        const byPair = Object.fromEntries((data.usdTransfers ?? []).map((u) => [`${u.from}-${u.to}`, u.cents]));
+        setUsd(byPair);
+        setUsdRate(data.rate?.usdPerUnit ?? null);
+        try {
+          sessionStorage.setItem(`squash:trip-usd:${data.scheduleId}`, JSON.stringify(byPair));
+        } catch {
+          // private mode: the done screen just shows pesos
+        }
 
         for (const person of data.transfers.map((t) => t.from).filter((p) => p !== "tu")) {
           await sign(data.scheduleId, person);
@@ -191,7 +205,12 @@ export default function SignScreen() {
                     </span>
                     <span style={{ fontSize: 11.5, color: done ? "var(--settled)" : "var(--muted)" }}>
                       {done ? t("Confirmed", "Confirmó") : isYou ? t("Your confirmation is needed", "Falta tu confirmación") : t("Signing…", "Firmando…")} ·{" "}
-                      {formatCents(transfer.cents)}
+                      {formatCents(transfer.cents)} MXN
+                      {usd[`${transfer.from}-${transfer.to}`] !== undefined && (
+                        <strong style={{ color: "var(--settled-strong)", fontWeight: 500 }}>
+                          {" "}→ {formatUsd(usd[`${transfer.from}-${transfer.to}`])}
+                        </strong>
+                      )}
                     </span>
                   </span>
                   <AnimatePresence mode="wait" initial={false}>
@@ -257,6 +276,11 @@ export default function SignScreen() {
             </span>
             <span style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.45, textWrap: "pretty" }}>
               {t(`These ${transfers.length} transfers are one pending transaction. It cannot execute halfway: it all goes through, or none of it does.`, `Las ${transfers.length} transferencias son una sola transacción pendiente. No puede ejecutarse a medias: sale completa o no sale.`)}
+              {usdRate !== null &&
+                t(
+                  ` They move in dollars (tUSD) at 1 MXN = ${usdRate} USD.`,
+                  ` Se mueven en dólares (tUSD) a 1 MXN = ${usdRate} USD.`,
+                )}
             </span>
           </span>
         </div>
@@ -267,7 +291,7 @@ export default function SignScreen() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 3px" }}>
             <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("Your part", "Tu parte")}</span>
             <span className="money" style={{ fontSize: 15, fontWeight: 500 }}>
-              {formatCents(yours.cents)}{" "}
+              {usd[`${yours.from}-${yours.to}`] !== undefined ? formatUsd(usd[`${yours.from}-${yours.to}`]) : formatCents(yours.cents)}{" "}
               <span style={{ color: "var(--muted)", fontWeight: 400 }}>{t("to", "a")} {personNameFor(yours.to)}</span>
             </span>
           </div>

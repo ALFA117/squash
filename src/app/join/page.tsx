@@ -46,7 +46,7 @@ export default function JoinScreen() {
   return (
     <main className="phone" style={{ padding: "30px 26px 26px" }}>
       <div className="brand-row" aria-label="Squash brand">
-        <img src="/logo.svg" alt="Squash logo" className="brand-mark" />
+        <img src="/brand/mark.webp" alt="Squash" className="brand-mark" width={32} height={32} />
         <div className="brand-copy">
           <span className="brand-name">Squash</span>
           <span className="brand-tag">shared expense settlement</span>

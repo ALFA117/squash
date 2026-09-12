@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { formatUsd } from "@/lib/money";
 import { formatCents } from "@/lib/netting";
 import { usePlan } from "@/lib/usePlan";
 import { useLocale } from "@/components/Locale";
@@ -21,6 +22,15 @@ function Done() {
   const { plan, error } = usePlan(expenses);
   const { t } = useLocale();
   const scheduleId = useSearchParams().get("schedule");
+  const [usd, setUsd] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!scheduleId) return;
+    try {
+      setUsd(JSON.parse(sessionStorage.getItem(`squash:trip-usd:${scheduleId}`) ?? "{}"));
+    } catch {
+      setUsd({});
+    }
+  }, [scheduleId]);
   const [scheduleStatus, setScheduleStatus] = useState<{
     executed: boolean | null;
     loading: boolean;
@@ -40,7 +50,7 @@ function Done() {
     const poll = async () => {
       try {
         const res = await fetch(`/api/settle?scheduleId=${encodeURIComponent(scheduleId)}`);
-        const data = (await res.json()) as { executed?: boolean; error?: string };
+        const data = (await res.json()) as { executed?: boolean; succeeded?: boolean; result?: string; error?: string };
 
         if (!res.ok || data.error) {
           throw new Error(data.error ?? "Failed to fetch schedule status");
@@ -48,6 +58,11 @@ function Done() {
 
         if (ignored) return;
 
+        // Executed means the last signature arrived; succeeded means the
+        // money actually moved. Only the second is "done".
+        if (data.executed && data.succeeded === false) {
+          throw new Error(`The network rejected the settlement (${data.result}). Nobody was charged.`);
+        }
         const executed = Boolean(data.executed);
 
         if (executed) {
@@ -155,7 +170,10 @@ function Done() {
               <span className="grow" style={{ fontSize: 14, textAlign: "left" }}>
                 {personNameFor(transfer.from)} <span style={{ color: "#d3e8dc" }}>{t("to", "a")}</span> {personNameFor(transfer.to)}
               </span>
-              <span className="money" style={{ fontSize: 14.5 }}>{formatCents(transfer.cents)}</span>
+              <span className="money" style={{ fontSize: 14.5, textAlign: "right" }}>
+                {usd[`${transfer.from}-${transfer.to}`] !== undefined ? formatUsd(usd[`${transfer.from}-${transfer.to}`]) : formatCents(transfer.cents)}
+                <small style={{ display: "block", fontSize: 11, color: "#d3e8dc" }}>{formatCents(transfer.cents)} MXN</small>
+              </span>
             </div>
           ))}
         </div>

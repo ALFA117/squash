@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import QRCode from "qrcode";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/Locale";
+import { PressButton, PressLink } from "@/components/Press";
 import { clearSession, loadSession, saveSession, type GroupSession } from "@/lib/groupSession";
+import { formatMoney, formatUsd, type Currency } from "@/lib/money";
 import { formatCents } from "@/lib/netting";
 import { checkShares, parseMoney, type SplitMode } from "@/lib/split";
 import { browserClient, supabaseConfigured } from "@/lib/supabase";
+import { useUsdRate } from "@/lib/useUsdRate";
+
+const SPRING = { type: "spring", stiffness: 380, damping: 30 } as const;
 
 interface Group {
   id: string;
@@ -19,6 +25,11 @@ interface Group {
   status: "open" | "locked" | "settled";
   schedule_id: string | null;
   plan_receipt: string | null;
+  currency: Currency;
+  fx_usd_per_unit: number | null;
+  fx_as_of: string | null;
+  fx_source: string | null;
+  settle_token: string | null;
 }
 
 interface Member {
@@ -26,6 +37,7 @@ interface Member {
   name: string;
   is_admin: boolean;
   share_cents: number | null;
+  settle_usd_cents: number | null;
   confirmed: boolean;
   account_index: number;
 }
@@ -187,20 +199,30 @@ export default function GroupRoom() {
         <div>
           <h1 className="title">{group.name}</h1>
           <span className="subtitle">
-            {formatCents(group.total_cents)} · {t("paid by", "pagó")} {payer?.name ?? "—"}
+            {formatMoney(group.total_cents, group.currency)} · {t("paid by", "pagó")} {payer?.name ?? "—"}
           </span>
         </div>
         <StatusChip status={group.status} />
       </div>
 
       <div className="room-pad">
-        <YourShare group={group} me={me} isPayer={isPayer} payerName={payer?.name ?? ""} />
+        <YourShare
+          group={group}
+          me={me}
+          isPayer={isPayer}
+          payerName={payer?.name ?? ""}
+          incomingUsd={members
+            .filter((m) => m.id !== group.payer_id)
+            .reduce((a, m) => a + (m.settle_usd_cents ?? 0), 0)}
+        />
 
         {actionError && (
           <p className="form-error" role="alert">
             {actionError}
           </p>
         )}
+
+        {group.status === "settled" && <SettledBanner />}
 
         {group.status === "open" && isAdmin && <InviteCard groupId={group.id} count={members.length} />}
 
@@ -223,7 +245,7 @@ export default function GroupRoom() {
           <ConfirmProgress done={confirmedDebtors} total={debtors.length} />
         )}
 
-        {group.status !== "open" && <PlanReceipt receipt={group.plan_receipt} />}
+        {group.status !== "open" && <Settlement group={group} />}
 
         <MemberList group={group} members={members} meId={me.id} />
 
@@ -253,16 +275,19 @@ export default function GroupRoom() {
       <div className="foot">
         {group.status === "open" && isAdmin && (
           <>
-            <button
+            <PressButton
               type="button"
               className="btn btn-settle"
               disabled={!check.balanced || members.length < 2 || busy !== null}
+              aria-busy={busy === "lock"}
               onClick={() => act("lock")}
             >
-              {busy === "lock"
-                ? t("Buying the plan and putting it on chain…", "Pagando el cálculo y registrando…")
-                : t("Ask everyone to confirm", "Pedir que todos confirmen")}
-            </button>
+              {busy === "lock" ? (
+                <Busy>{t("Converting, buying the plan, putting it on chain…", "Convirtiendo, pagando el cálculo y registrando…")}</Busy>
+              ) : (
+                t("Ask everyone to confirm", "Pedir que todos confirmen")
+              )}
+            </PressButton>
             <span className="foot-hint">
               {members.length < 2
                 ? t("Show the QR — nobody else has joined yet.", "Enseña el QR — todavía no entra nadie más.")
@@ -270,38 +295,43 @@ export default function GroupRoom() {
                   ? t("Not every share is decided yet.", "Falta decidir la parte de alguien.")
                   : check.gap !== 0
                     ? check.gap > 0
-                      ? t(`${formatCents(check.gap)} still to assign.`, `Faltan ${formatCents(check.gap)} por asignar.`)
-                      : t(`${formatCents(-check.gap)} over the bill.`, `Se pasa por ${formatCents(-check.gap)}.`)
-                    : t("It adds up. Once asked, nobody pays until everyone says yes.", "Ya cuadra. Al pedirlo, nadie paga hasta que todos digan que sí.")}
+                      ? t(`${formatMoney(check.gap, group.currency)} still to assign.`, `Faltan ${formatMoney(check.gap, group.currency)} por asignar.`)
+                      : t(`${formatMoney(-check.gap, group.currency)} over the bill.`, `Se pasa por ${formatMoney(-check.gap, group.currency)}.`)
+                    : group.currency === "USD"
+                      ? t("It adds up. Once asked, nobody pays until everyone says yes.", "Ya cuadra. Al pedirlo, nadie paga hasta que todos digan que sí.")
+                      : t("It adds up. Asking converts every share to dollars at today's rate — nobody pays until everyone says yes.", "Ya cuadra. Al pedirlo, cada parte se convierte a dólares al tipo de cambio de hoy — nadie paga hasta que todos digan que sí.")}
             </span>
           </>
         )}
 
         {group.status === "locked" && !isPayer && (me.share_cents ?? 0) > 0 && (
-          <button
+          <PressButton
             type="button"
             className="btn btn-settle"
             disabled={me.confirmed || busy !== null}
+            aria-busy={busy === "confirm"}
             onClick={() => act("confirm")}
           >
-            {me.confirmed
-              ? t("You confirmed — waiting for the rest", "Ya confirmaste — esperando a los demás")
-              : busy === "confirm"
-                ? t("Signing…", "Firmando…")
-                : t(`Yes, I pay ${formatCents(me.share_cents ?? 0)}`, `Sí, pago ${formatCents(me.share_cents ?? 0)}`)}
-          </button>
+            {me.confirmed ? (
+              t("You confirmed — waiting for the rest", "Ya confirmaste — esperando a los demás")
+            ) : busy === "confirm" ? (
+              <Busy>{t("Signing…", "Firmando…")}</Busy>
+            ) : (
+              t(`Yes, I pay ${formatUsd(me.settle_usd_cents ?? 0)}`, `Sí, pago ${formatUsd(me.settle_usd_cents ?? 0)}`)
+            )}
+          </PressButton>
         )}
 
         {group.status === "locked" && isAdmin && (
-          <button type="button" className="btn btn-ghost" disabled={busy !== null} onClick={() => act("reopen")}>
-            {busy === "reopen" ? t("Reopening…", "Reabriendo…") : t("Change the split", "Cambiar el reparto")}
-          </button>
+          <PressButton type="button" className="btn btn-ghost" disabled={busy !== null} onClick={() => act("reopen")}>
+            {busy === "reopen" ? <Busy>{t("Reopening…", "Reabriendo…")}</Busy> : t("Change the split", "Cambiar el reparto")}
+          </PressButton>
         )}
 
         {group.status === "settled" && (
-          <Link href="/nuevo" className="btn btn-dark">
+          <PressLink href="/nuevo" className="btn btn-dark">
             {t("Split another bill", "Dividir otra cuenta")}
-          </Link>
+          </PressLink>
         )}
       </div>
     </main>
@@ -310,34 +340,91 @@ export default function GroupRoom() {
 
 // ── pieces ──────────────────────────────────────────────────────────────────
 
-/**
- * The app bought this settlement plan from the metered engine over x402.
- * Shown with the transaction that paid for it, so the charge is something a
- * person can open and check rather than a claim on a screen.
- */
-function PlanReceipt({ receipt }: { receipt: string | null }) {
-  const { t } = useLocale();
-  if (!receipt) return null;
-
-  // 0.0.X@SECONDS.NANOS  ->  0.0.X-SECONDS-NANOS, the form the explorer takes
-  const [account, stamp = ""] = receipt.split("@");
-  const txPath = `${account}-${stamp.replace(".", "-")}`;
-
+/** A spinner inside a button, so a slow chain call never looks like a dead tap. */
+function Busy({ children }: { children: React.ReactNode }) {
   return (
-    <a
-      className="receipt plan-receipt"
-      href={`https://hashscan.io/testnet/transaction/${encodeURIComponent(txPath)}`}
-      target="_blank"
-      rel="noreferrer"
-    >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M4 12.5l5 5L20 6.5" />
+    <span className="busy">
+      <span className="spinner" aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
+
+/** 0.0.X@SECONDS.NANOS  ->  0.0.X-SECONDS-NANOS, the form the explorer takes. */
+function txPath(id: string) {
+  const [account, stamp = ""] = id.split("@");
+  return `${account}-${stamp.replace(".", "-")}`;
+}
+
+/**
+ * What is settling, and in what: the frozen exchange rate, the dollar token,
+ * and the x402 payment that bought the plan. Each line opens on the chain or
+ * names its source, so none of it is a claim on a screen.
+ */
+function Settlement({ group }: { group: Group }) {
+  const { t } = useLocale();
+  const rate = group.fx_usd_per_unit;
+  const converted = rate !== null && group.currency !== "USD";
+  return (
+    <section className="settle-card" aria-label={t("How it settles", "Cómo se liquida")}>
+      <span className="label">{t("SETTLES IN DOLLARS", "SE LIQUIDA EN DÓLARES")}</span>
+      {converted && (
+        <div className="settle-line">
+          <span className="grow">{t("Rate, frozen for this bill", "Tipo de cambio, fijo para esta cuenta")}</span>
+          <span className="money">1 {group.currency} = {Number(rate).toFixed(6)} USD</span>
+        </div>
+      )}
+      {converted && (
+        <div className="settle-sub">
+          {group.fx_source} · {group.fx_as_of}
+        </div>
+      )}
+      {group.settle_token && (
+        <a
+          className="settle-line settle-link"
+          href={`https://hashscan.io/testnet/token/${encodeURIComponent(group.settle_token)}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span className="grow">{t("Moves as tUSD, a Hedera dollar token", "Se mueve como tUSD, un token de dólares en Hedera")}</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      )}
+      {group.plan_receipt && (
+        <a
+          className="receipt plan-receipt"
+          href={`https://hashscan.io/testnet/transaction/${encodeURIComponent(txPath(group.plan_receipt))}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 12.5l5 5L20 6.5" />
+          </svg>
+          <span className="grow">
+            {t("Plan bought from the engine · paid over x402", "Cálculo comprado al motor · pagado por x402")}
+          </span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      )}
+    </section>
+  );
+}
+
+/** The moment it all went through. A check that draws itself, once. */
+function SettledBanner() {
+  const { t } = useLocale();
+  return (
+    <section className="settled-banner" role="status">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {/* CSS, not JS: the finished check is the resting state, so a
+            throttled frame loop can never leave it half drawn. */}
+        <path className="draw-check" d="M4 12.5l5 5L20 6.5" />
       </svg>
-      <span className="grow">
-        {t("Plan bought from the engine · paid over x402", "Cálculo comprado al motor · pagado por x402")}
-      </span>
-      <span aria-hidden="true">↗</span>
-    </a>
+      <div>
+        <strong>{t("Paid. Everyone is at zero.", "Pagado. Todos quedaron en cero.")}</strong>
+        <span>{t("Every transfer went through at once, in one transaction.", "Todas las transferencias salieron juntas, en una sola transacción.")}</span>
+      </div>
+    </section>
   );
 }
 
@@ -349,7 +436,20 @@ function StatusChip({ status }: { status: Group["status"] }) {
       : status === "locked"
         ? t("Confirming", "Confirmando")
         : t("Settled", "Liquidada");
-  return <span className={`status-chip status-${status}`}>{label}</span>;
+  return (
+    <AnimatePresence mode="popLayout" initial={false}>
+      <motion.span
+        key={status}
+        className={`status-chip status-${status}`}
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 6, transition: { duration: 0.12 } }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {label}
+      </motion.span>
+    </AnimatePresence>
+  );
 }
 
 function YourShare({
@@ -357,26 +457,54 @@ function YourShare({
   me,
   isPayer,
   payerName,
+  incomingUsd,
 }: {
   group: Group;
   me: Member;
   isPayer: boolean;
   payerName: string;
+  incomingUsd: number;
 }) {
   const { t } = useLocale();
+  const reduce = useReducedMotion();
+  const live = useUsdRate(group.status === "open" && group.currency !== "USD" ? group.currency : null);
   const share = me.share_cents;
+  const frozen = group.status !== "open";
+  const owedToMe = group.total_cents - (share ?? 0);
 
   let caption: string;
   if (group.status === "settled") {
-    caption = t("Settled. Everyone is at zero.", "Liquidada. Todos en cero.");
+    caption = isPayer
+      ? t("Settled. Everyone paid you.", "Liquidada. Todos te pagaron.")
+      : t(`Settled. You paid ${payerName}.`, `Liquidada. Le pagaste a ${payerName}.`);
   } else if (isPayer) {
-    const owed = group.total_cents - (share ?? 0);
-    caption = t(`You paid. The others owe you ${formatCents(owed)}.`, `Tú pagaste. Los demás te deben ${formatCents(owed)}.`);
+    caption = t(
+      `You paid. The others owe you ${formatMoney(owedToMe, group.currency)}.`,
+      `Tú pagaste. Los demás te deben ${formatMoney(owedToMe, group.currency)}.`,
+    );
   } else if (share === null) {
     caption = t("Your share is not decided yet.", "Todavía no se decide tu parte.");
   } else {
     caption = t(`You owe ${payerName}.`, `Le debes a ${payerName}.`);
   }
+
+  // What this person will actually pay in dollars: frozen once confirmations
+  // start, an estimate at today's rate before that.
+  let dollars: string | null = null;
+  if (isPayer && frozen && incomingUsd > 0) {
+    dollars = t(`You receive ${formatUsd(incomingUsd)} in dollars`, `Recibes ${formatUsd(incomingUsd)} en dólares`);
+  } else if (!isPayer && share !== null && share > 0) {
+    if (frozen && me.settle_usd_cents !== null) {
+      dollars = t(`You pay ${formatUsd(me.settle_usd_cents)} in dollars`, `Pagas ${formatUsd(me.settle_usd_cents)} en dólares`);
+    } else if (group.currency !== "USD" && live) {
+      dollars = t(
+        `≈ ${formatUsd(Math.round(share * live.usdPerUnit))} at today's rate`,
+        `≈ ${formatUsd(Math.round(share * live.usdPerUnit))} al tipo de cambio de hoy`,
+      );
+    }
+  }
+
+  const amount = share === null ? "—" : formatCents(share);
 
   return (
     <section className="your-share" aria-live="polite">
@@ -384,9 +512,22 @@ function YourShare({
         {t("YOU ARE", "ERES")} {me.name.toUpperCase()}
         {me.is_admin ? ` · ${t("ADMIN", "ADMIN")}` : ""}
       </span>
-      <span className={`your-amount ${isPayer ? "is-payer" : ""}`}>
-        {share === null ? "—" : formatCents(share)}
+      <span className="your-amount-row">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={amount}
+            className={`your-amount ${isPayer ? "is-payer" : ""}`}
+            initial={reduce ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, y: -14, transition: { duration: 0.14 } }}
+            transition={SPRING}
+          >
+            {amount}
+          </motion.span>
+        </AnimatePresence>
+        <span className="your-currency">{group.currency}</span>
       </span>
+      {dollars && <span className={frozen ? "your-usd frozen" : "your-usd"}>{dollars}</span>}
       <span className="your-caption">{caption}</span>
     </section>
   );
@@ -406,7 +547,7 @@ function InviteCard({ groupId, count }: { groupId: string; count: number }) {
       margin: 1,
       width: 360,
       errorCorrectionLevel: "M",
-      color: { dark: "#171b17", light: "#f8f9f6" },
+      color: { dark: "#1b2430", light: "#ffffff" },
     })
       .then(setQr)
       .catch(() => setQr(null));
@@ -445,6 +586,12 @@ function InviteCard({ groupId, count }: { groupId: string; count: number }) {
         >
           {copied ? t("Link copied", "Enlace copiado") : t("Copy the link instead", "Mejor copiar el enlace")}
         </button>
+        <span className="invite-tip">
+          {t(
+            "Trying it alone? Open the link in a private window — this browser is already you.",
+            "¿Lo pruebas tú solo? Abre el enlace en una ventana de incógnito — este navegador ya eres tú.",
+          )}
+        </span>
       </div>
     </section>
   );
@@ -466,6 +613,7 @@ function SplitControls({
   onShare: (targetId: string, cents: number) => void;
 }) {
   const { t } = useLocale();
+  const reduce = useReducedMotion();
   const modes: Array<{ id: SplitMode; label: string; hint: string }> = [
     { id: "equal", label: t("Equal parts", "Partes iguales"), hint: t("Same for everyone", "Igual para todos") },
     { id: "custom", label: t("I set amounts", "Yo pongo montos"), hint: t("You decide each share", "Tú decides cada parte") },
@@ -486,6 +634,9 @@ function SplitControls({
             disabled={busy !== null}
             onClick={() => group.split_mode !== m.id && onMode(m.id)}
           >
+            {group.split_mode === m.id && (
+              <motion.span layoutId="mode-pill" className="mode-pill" transition={reduce ? { duration: 0 } : SPRING} />
+            )}
             <span className="mode-label">{m.label}</span>
             <span className="mode-hint">{m.hint}</span>
           </button>
@@ -500,7 +651,7 @@ function SplitControls({
           <div className={`share-balance ${check.balanced ? "ok" : ""}`}>
             <span>{t("Assigned", "Asignado")}</span>
             <span className="money">
-              {formatCents(check.assigned)} / {formatCents(group.total_cents)}
+              {formatCents(check.assigned)} / {formatMoney(group.total_cents, group.currency)}
             </span>
           </div>
         </div>
@@ -581,9 +732,9 @@ function OwnShareInput({ me, busy, onSave }: { me: Member; busy: boolean; onSave
             aria-label={t("What you had", "Lo que consumiste")}
           />
         </span>
-        <button type="submit" className="btn btn-dark btn-inline" disabled={cents === null || busy}>
+        <PressButton type="submit" className="btn btn-dark btn-inline" disabled={cents === null || busy}>
           {busy ? t("Saving…", "Guardando…") : t("Save", "Guardar")}
-        </button>
+        </PressButton>
       </div>
     </form>
   );
@@ -591,6 +742,7 @@ function OwnShareInput({ me, busy, onSave }: { me: Member; busy: boolean; onSave
 
 function ConfirmProgress({ done, total }: { done: number; total: number }) {
   const { t } = useLocale();
+  const reduce = useReducedMotion();
   return (
     <section className="confirm-progress" aria-live="polite">
       <div className="confirm-count">
@@ -603,7 +755,13 @@ function ConfirmProgress({ done, total }: { done: number; total: number }) {
       </div>
       <div className="confirm-bar" aria-hidden="true">
         {Array.from({ length: total }).map((_, i) => (
-          <span key={i} className={i < done ? "on" : ""} />
+          <span key={i}>
+            <motion.i
+              initial={false}
+              animate={{ scaleX: i < done ? 1 : 0 }}
+              transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 26 }}
+            />
+          </span>
         ))}
       </div>
       <p className="room-note">
@@ -618,17 +776,28 @@ function ConfirmProgress({ done, total }: { done: number; total: number }) {
 
 function MemberList({ group, members, meId }: { group: Group; members: Member[]; meId: string }) {
   const { t } = useLocale();
+  const reduce = useReducedMotion();
+  const frozen = group.status !== "open";
   return (
     <section>
       <span className="label">
         {t("AT THE TABLE", "EN LA MESA")} · {members.length}
       </span>
       <ul className="card member-list">
+        <AnimatePresence initial={false}>
         {members.map((m) => {
           const isPayer = m.id === group.payer_id;
           const owes = !isPayer && (m.share_cents ?? 0) > 0;
           return (
-            <li key={m.id} className="row">
+            <motion.li
+              key={m.id}
+              className="row"
+              layout={reduce ? false : "position"}
+              initial={reduce ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+              transition={SPRING}
+            >
               <span className={m.id === meId ? "avatar you" : "avatar"} aria-hidden="true">
                 {m.name.slice(0, 1).toUpperCase()}
               </span>
@@ -651,19 +820,25 @@ function MemberList({ group, members, meId }: { group: Group; members: Member[];
                           : t("Owes", "Debe")}
                 </span>
               </span>
-              <span className="money">{m.share_cents === null ? "—" : formatCents(m.share_cents)}</span>
+              <span className="member-money">
+                <span className="money">{m.share_cents === null ? "—" : formatCents(m.share_cents)}</span>
+                {frozen && !isPayer && m.settle_usd_cents !== null && m.settle_usd_cents > 0 && (
+                  <span className="money-usd">{formatUsd(m.settle_usd_cents)}</span>
+                )}
+              </span>
               {group.status === "locked" && owes && (
                 <span className={m.confirmed ? "tick on" : "tick"} aria-label={m.confirmed ? t("confirmed", "confirmó") : t("pending", "pendiente")}>
                   {m.confirmed ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 12.5l5 5L20 6.5" />
+                      <path className="draw-check" d="M4 12.5l5 5L20 6.5" />
                     </svg>
                   ) : null}
                 </span>
               )}
-            </li>
+            </motion.li>
           );
         })}
+        </AnimatePresence>
       </ul>
     </section>
   );
@@ -708,12 +883,13 @@ function JoinView({
   return (
     <main className="phone">
       <form onSubmit={join} className="join-view">
+        <img src="/brand/mark.webp" alt="Squash" width={64} height={64} className="join-mark" />
         <span className="label">
           {payer ? t(`${payer.name.toUpperCase()} INVITED YOU`, `${payer.name.toUpperCase()} TE INVITÓ`) : ""}
         </span>
         <h1 className="join-title">{group.name}</h1>
         <p className="join-sub">
-          {formatCents(group.total_cents)} · {members.length} {t("at the table", "en la mesa")}
+          {formatMoney(group.total_cents, group.currency)} · {members.length} {t("at the table", "en la mesa")}
         </p>
 
         {closed ? (
@@ -741,9 +917,9 @@ function JoinView({
                 {error}
               </p>
             )}
-            <button type="submit" className="btn btn-settle" disabled={!name.trim() || busy}>
-              {busy ? t("Joining…", "Entrando…") : t("Join the table", "Entrar a la mesa")}
-            </button>
+            <PressButton type="submit" className="btn btn-dark" disabled={!name.trim() || busy}>
+              {busy ? <Busy>{t("Joining…", "Entrando…")}</Busy> : t("Join the table", "Entrar a la mesa")}
+            </PressButton>
             <p className="join-foot">
               {t(
                 "You will see your share and confirm it. Nobody pays until everyone agrees.",

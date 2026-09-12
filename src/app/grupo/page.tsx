@@ -7,7 +7,7 @@ import { useGroup } from "@/components/GroupProvider";
 
 export default function GroupScreen() {
   const { t, locale } = useLocale();
-  const { name, people, expenses: groupExpenses, confirmed, addPerson, confirmParticipation, resetGroup } = useGroup();
+  const { name, people, expenses: groupExpenses, resetGroup } = useGroup();
   const { balances, grossEdges } = netExpenses(groupExpenses);
   const you = people.find((p) => p.id === "tu") ?? people[0];
   const yourBalance = balances[you.id] ?? 0;
@@ -25,16 +25,10 @@ export default function GroupScreen() {
 
   const expenses = [...groupExpenses].sort((a, b) => b.cents - a.cents);
 
-  const confirmedCount = people.filter((p) => confirmed[p.id]).length;
-
   const handleResetDemo = () => {
     if (window.confirm(t("Reset the demo group to the original trip?", "¿Reiniciar el grupo demo al viaje original?"))) {
       resetGroup();
     }
-  };
-
-  const handleConfirm = () => {
-    confirmParticipation(you.id);
   };
 
   return (
@@ -47,33 +41,6 @@ export default function GroupScreen() {
           </span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button
-            type="button"
-            aria-label={t("Add person", "Agregar persona")}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: "var(--surface-2)",
-              border: "1px solid var(--rule)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--ink)",
-              cursor: "pointer",
-            }}
-            onClick={() => {
-              const nextName = window.prompt(
-                t("Add a person to this group", "Agregar una persona al grupo"),
-                t("New person", "Nueva persona"),
-              );
-              if (nextName) addPerson(nextName);
-            }}
-          >
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
           <Link
             href="/expense"
             aria-label={t("Add expense", "Agregar gasto")}
@@ -175,31 +142,6 @@ export default function GroupScreen() {
       </section>
 
       <section style={{ padding: "18px 22px 0" }}>
-        <div className="card confirmation-card">
-          <div className="participant-panel-head">
-            <span className="label">{t("CONFIRMATION", "CONFIRMACIÓN")}</span>
-            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{confirmedCount}/{people.length}</span>
-          </div>
-
-          <div className="confirmation-body">
-            <div>
-              <span className="label">{t("YOUR STATUS", "TU ESTADO")}</span>
-              <strong>{confirmed[you.id] ? t("Confirmed", "Confirmado") : t("Pending", "Pendiente")}</strong>
-            </div>
-            <button
-              type="button"
-              className="btn btn-settle"
-              style={{ width: "auto", minWidth: 150, padding: "0 16px" }}
-              onClick={handleConfirm}
-              disabled={confirmed[you.id]}
-            >
-              {confirmed[you.id] ? t("Confirmed", "Confirmado") : t("Confirm my part", "Confirmar mi parte")}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section style={{ padding: "18px 22px 0" }}>
         <div className="card participant-panel">
           <div className="participant-panel-head">
             <span className="label">{t("PARTICIPANTS", "PARTICIPANTES")}</span>
@@ -259,7 +201,8 @@ export default function GroupScreen() {
           {t("Settle the group", "Liquidar el grupo")}
         </Link>
         <span style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
-          {grossEdges.length} {t("crossed debts between", "deudas cruzadas entre")} {people.length} {t("people", "personas")}
+          {grossEdges.length} {t("crossed debts between", "deudas cruzadas entre")} {people.length} {t("people", "personas")} ·{" "}
+          {t("everyone confirms on the next screens, then it settles in dollars", "todos confirman en las siguientes pantallas y se liquida en dólares")}
         </span>
       </div>
     </main>

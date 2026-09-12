@@ -23,7 +23,7 @@ interface Props {
 }
 
 const W = 330;
-const H = 248;
+const H = 268;
 const CX = 165;
 const CY = 118;
 const R = 88;
@@ -144,9 +144,15 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
               <text
                 x={(x1 + x2) / 2}
                 y={(y1 + y2) / 2}
-                fill="var(--settled)"
-                fontSize="9"
+                fill="var(--settled-strong)"
+                fontSize="9.5"
+                fontWeight="600"
                 textAnchor="middle"
+                dominantBaseline="middle"
+                stroke="var(--bg)"
+                strokeWidth="4"
+                paintOrder="stroke"
+                markerEnd="none"
                 style={
                   {
                     animation: "dg-label-fade 500ms ease-out backwards",
