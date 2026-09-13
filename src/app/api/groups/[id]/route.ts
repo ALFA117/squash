@@ -7,6 +7,7 @@ import {
   lockGroup,
   reissueSeat,
   removeMember,
+  setPayoutWallet,
   reopenGroup,
   setOwnShare,
   setShareByAdmin,
@@ -74,6 +75,8 @@ export async function POST(request: Request, { params }: Ctx) {
         return NextResponse.json(await confirmShare(id, memberId, secret));
       case "reissue":
         return NextResponse.json(await reissueSeat(id, memberId, secret, body.targetId));
+      case "payout-wallet":
+        return NextResponse.json(await setPayoutWallet(id, memberId, secret, body.evm));
       case "remove":
         await removeMember(id, memberId, secret, body.targetId);
         return NextResponse.json({ ok: true });

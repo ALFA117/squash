@@ -3,6 +3,7 @@ import { usdRate } from "./fx";
 import { isCurrency, toUsdCents, type Currency } from "./money";
 import type { Transfer } from "./netting";
 import { fetchPaidPlan } from "./payingClient";
+import { ensureWalletAccount, isEvmAddress } from "./payout";
 import { pool, poolSize } from "./pool";
 import { scheduleSettlement, scheduleStatus, settlementToken, signSchedule } from "./scheduled";
 import { checkShares, equalShares, transfersToPayer, type SplitMode } from "./split";
@@ -43,6 +44,10 @@ export interface GroupRow {
   fx_source: string | null;
   /** The HTS token the settlement moves (tUSD on testnet). */
   settle_token: string | null;
+  /** The payer's own wallet (Privy), if they chose to be paid there. */
+  payout_evm: string | null;
+  /** The Hedera account behind that wallet. */
+  payout_account: string | null;
   created_at: string;
 }
 
@@ -427,6 +432,8 @@ export async function lockGroup(
     if (!acct) throw new GroupError("A member has no settlement account", 503);
     accountMap[m.id] = acct.accountId;
   }
+  // The payer chose their own wallet: what they are owed lands there.
+  if (group.payout_account) accountMap[group.payer_id] = group.payout_account;
 
   let scheduleId: string;
   try {
@@ -499,6 +506,32 @@ export async function reopenGroup(groupId: string, memberId: string, secret: str
     .update({ confirmed: false, settle_usd_cents: null })
     .eq("group_id", groupId);
   if (e) throw new GroupError(e.message, 502);
+}
+
+/**
+ * The payer picks their own wallet (Privy) as the place to be paid.
+ * Only before confirmations start: after that the schedule already exists.
+ */
+export async function setPayoutWallet(groupId: string, memberId: string, secret: string, evm: unknown) {
+  const me = await authenticateAdmin(groupId, memberId, secret);
+  const { group } = await getGroup(groupId);
+  assertOpen(group);
+  if (me.id !== group.payer_id) throw new GroupError("Only the person who paid chooses where to be paid", 403);
+  if (!isEvmAddress(evm)) throw new GroupError("That is not a wallet address");
+
+  let account: string;
+  try {
+    account = await ensureWalletAccount(evm);
+  } catch (e) {
+    throw new GroupError(`Could not prepare your wallet on Hedera: ${(e as Error).message}`, 502);
+  }
+
+  const { error } = await serverClient()
+    .from("groups")
+    .update({ payout_evm: evm.toLowerCase(), payout_account: account })
+    .eq("id", groupId);
+  if (error) throw new GroupError(error.message, 502);
+  return { account };
 }
 
 /**

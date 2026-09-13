@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import QRCode from "qrcode";
@@ -18,6 +19,12 @@ import { useUsdRate } from "@/lib/useUsdRate";
 
 const SPRING = { type: "spring", stiffness: 380, damping: 30 } as const;
 
+// Privy loads only when the payer opens their wallet — never on anyone else's path.
+const PayoutWallet = dynamic(() => import("@/components/PayoutWallet"), {
+  ssr: false,
+  loading: () => <p className="wallet-note">…</p>,
+});
+
 interface Group {
   id: string;
   name: string;
@@ -32,6 +39,8 @@ interface Group {
   fx_as_of: string | null;
   fx_source: string | null;
   settle_token: string | null;
+  payout_evm: string | null;
+  payout_account: string | null;
 }
 
 interface Member {
@@ -289,6 +298,13 @@ export default function GroupRoom() {
 
         {group.status !== "open" && <Settlement group={group} />}
 
+        {isPayer && (group.status === "open" || group.payout_evm) && (
+          <WalletCard
+            group={group}
+            onConnect={async (evm) => (await act("payout-wallet", { evm })) !== null}
+          />
+        )}
+
         <MemberList
           group={group}
           members={members}
@@ -438,6 +454,14 @@ function Settlement({ group }: { group: Group }) {
           {group.fx_source} · {group.fx_as_of}
         </div>
       )}
+      {group.payout_account && (
+        <div className="settle-line">
+          <span className="grow">{t("Paid into the payer's own wallet", "Se paga a la cartera propia de quien pagó")}</span>
+          <a className="money receipt-link" href={`https://hashscan.io/testnet/account/${group.payout_account}`} target="_blank" rel="noreferrer">
+            {group.payout_account} ↗
+          </a>
+        </div>
+      )}
       {group.settle_token && (
         <a
           className="settle-line settle-link"
@@ -464,6 +488,43 @@ function Settlement({ group }: { group: Group }) {
           </span>
           <span aria-hidden="true">↗</span>
         </a>
+      )}
+    </section>
+  );
+}
+
+/**
+ * The payer's wallet: opt-in, below everything else, and it loads Privy only
+ * when opened — so it can never stand between anyone and the bill.
+ */
+function WalletCard({ group, onConnect }: { group: Group; onConnect: (evm: string) => Promise<boolean> }) {
+  const { t } = useLocale();
+  const [open, setOpen] = useState(!!group.payout_evm);
+  return (
+    <section className="wallet-card" aria-label={t("Where you get paid", "Dónde recibes tu dinero")}>
+      <div className="wallet-head">
+        <span className="label">{t("WHERE YOU GET PAID", "DÓNDE RECIBES TU DINERO")}</span>
+        <span className="wallet-by">Privy</span>
+      </div>
+      {open ? (
+        <PayoutWallet
+          status={group.status}
+          payoutEvm={group.payout_evm}
+          payoutAccount={group.payout_account}
+          onConnect={onConnect}
+        />
+      ) : (
+        <>
+          <p className="wallet-note">
+            {t(
+              "By default the money you are owed goes to the table's test account. You can have it land in your own wallet instead — made from your email in seconds.",
+              "Por defecto lo que te deben llega a la cuenta de prueba de la mesa. Puedes hacer que llegue a tu propia cartera — se crea con tu correo en segundos.",
+            )}
+          </p>
+          <button type="button" className="btn btn-ghost" onClick={() => setOpen(true)}>
+            {t("Use my own wallet", "Usar mi propia cartera")}
+          </button>
+        </>
       )}
     </section>
   );

@@ -2545,3 +2545,77 @@ a[class*="avatar"] {
     padding-top: 56px;
   }
 }
+
+/* ── the payer's wallet (Privy) ─────────────────────────────────────────── */
+
+.wallet-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.wallet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wallet-by {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.wallet-body,
+.wallet-send {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wallet-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.wallet-ok {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--settled-strong);
+}
+
+.wallet-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.wallet-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--settled) 8%, var(--surface));
+}
+
+.wallet-balance strong {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--settled-strong);
+}
+
+.wallet-card .btn {
+  height: 48px;
+}
