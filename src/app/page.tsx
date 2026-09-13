@@ -5,6 +5,7 @@ import { Logo3D } from "@/components/Logo3D";
 import { PressLink } from "@/components/Press";
 import { Reveal } from "@/components/Reveal";
 import { DebtGraph } from "@/components/DebtGraph";
+import { CountUp, Magnetic, ReplayInView, ScrollProgress, TiltCard } from "@/components/LandingMotion";
 import { useLocale } from "@/components/Locale";
 import { formatUsd } from "@/lib/money";
 import { formatCents, netExpenses } from "@/lib/netting";
@@ -31,6 +32,7 @@ export default function Landing() {
 
   return (
     <main className="landing">
+      <ScrollProgress />
       <nav className="lp-top" aria-label="Squash">
         <LogoMark size={36} />
         <Wordmark width={116} />
@@ -39,8 +41,11 @@ export default function Landing() {
       <header className="lp-hero">
         <div className="lp-hero-copy">
           <span className="lp-kicker">{t("Split the bill · Hedera", "Divide la cuenta · Hedera")}</span>
-          <h1>
-            {t("Nobody pays until", "Nadie paga hasta que")} <span className="lp-accent">{t("everyone says yes.", "todos digan que sí.")}</span>
+          <h1 aria-label={t("Nobody pays until everyone says yes.", "Nadie paga hasta que todos digan que sí.")}>
+            <Words text={t("Nobody pays until", "Nadie paga hasta que")} />{" "}
+            <span className="lp-accent">
+              <Words text={t("everyone says yes.", "todos digan que sí.")} offset={4} />
+            </span>
           </h1>
           <p className="lp-lead">
             {t(
@@ -49,15 +54,19 @@ export default function Landing() {
             )}
           </p>
           <div className="lp-cta">
-            <PressLink href="/nuevo" className="btn btn-dark lp-cta-main">
-              {t("Split a bill", "Dividir una cuenta")}
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </PressLink>
-            <PressLink href="/join" className="btn btn-ghost lp-cta-alt">
-              {t("See the sample trip", "Ver el viaje de ejemplo")}
-            </PressLink>
+            <Magnetic>
+              <PressLink href="/nuevo" className="btn btn-dark lp-cta-main">
+                {t("Split a bill", "Dividir una cuenta")}
+                <svg className="cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </PressLink>
+            </Magnetic>
+            <Magnetic strength={0.15}>
+              <PressLink href="/join" className="btn btn-ghost lp-cta-alt">
+                {t("See the sample trip", "Ver el viaje de ejemplo")}
+              </PressLink>
+            </Magnetic>
           </div>
         </div>
         <div className="lp-hero-mark">
@@ -69,18 +78,21 @@ export default function Landing() {
         <section className="lp-flow" aria-label={t("How it works at the table", "Cómo funciona en la mesa")}>
           <FlowStep
             n={1}
+            motion="scan"
             title={t("Scan the QR", "Escanean el QR")}
             body={t("Whoever paid opens the bill. Everyone else scans in and sees who they are and what they owe.", "Quien pagó abre la cuenta. Los demás escanean y ven quiénes son y cuánto deben.")}
             icon={<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2v2h-2zM18 14h2v2h-2z" />}
           />
           <FlowStep
             n={2}
+            motion="split"
             title={t("Pick the split", "Eligen cómo dividir")}
             body={t("Equal parts to the cent, amounts the payer sets, or each person enters their own.", "Partes iguales al centavo, montos que pone quien pagó, o cada quien escribe lo suyo.")}
             icon={<path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8" />}
           />
           <FlowStep
             n={3}
+            motion="check"
             title={t("Everyone says yes", "Todos dicen que sí")}
             body={t("It is one pending transaction on Hedera. The last yes executes it. If one person never agrees, nobody pays.", "Es una sola transacción pendiente en Hedera. El último sí la ejecuta. Si alguien no acepta, nadie paga.")}
             icon={<path d="M4 12.5l5 5L20 6.5" />}
@@ -112,14 +124,23 @@ export default function Landing() {
           <div className="lp-fx-card" aria-live="polite">
             <span className="label">{t("A $2,500 DINNER, TODAY", "UNA CENA DE $2,500, HOY")}</span>
             <div className="lp-fx-row">
-              <span className="lp-fx-big">{formatCents(SAMPLE_BILL)}</span>
+              <CountUp className="lp-fx-big" to={SAMPLE_BILL} format={(v) => formatCents(Math.round(v))} />
               <span className="lp-fx-unit">MXN</span>
             </div>
             <svg className="lp-fx-arrow" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 4v16M6 14l6 6 6-6" />
             </svg>
             <div className="lp-fx-row">
-              <span className="lp-fx-big lp-fx-usd">{rate ? formatUsd(Math.round(SAMPLE_BILL * rate.usdPerUnit)) : "US$—"}</span>
+              {rate ? (
+                <CountUp
+                  className="lp-fx-big lp-fx-usd"
+                  to={Math.round(SAMPLE_BILL * rate.usdPerUnit)}
+                  format={(v) => formatUsd(Math.round(v))}
+                  duration={1.8}
+                />
+              ) : (
+                <span className="lp-fx-big lp-fx-usd">US$—</span>
+              )}
             </div>
             <span className="lp-fx-rate">
               {rate ? t(`1 MXN = ${rate.usdPerUnit} USD · ${rate.asOf}`, `1 MXN = ${rate.usdPerUnit} USD · ${rate.asOf}`) : t("Getting today's rate…", "Consultando el tipo de cambio…")}
@@ -138,7 +159,7 @@ export default function Landing() {
             <h2 id="lp-bento-title">{t("Four pieces, one promise", "Cuatro piezas, una sola promesa")}</h2>
           </header>
 
-          <article className="bento bento-hedera">
+          <TiltCard className="bento bento-hedera" max={4}>
             <BentoIcon><path d="M4 12.5l5 5L20 6.5" /></BentoIcon>
             <span className="bento-by">Hedera · Scheduled Transactions</span>
             <h3>{t("Nobody pays until the last yes", "Nadie paga hasta el último sí")}</h3>
@@ -151,51 +172,51 @@ export default function Landing() {
             <div className="bento-meter" aria-hidden="true">
               <span className="on" /><span className="on" /><span className="on" /><span />
             </div>
-          </article>
+          </TiltCard>
 
-          <article className="bento bento-x402">
+          <TiltCard className="bento bento-x402" max={4}>
             <BentoIcon><path d="M4 7h16M4 12h10M4 17h6" /></BentoIcon>
             <span className="bento-by">x402 · Blocky402</span>
             <h3>{t("The engine charges per use", "El motor cobra por uso")}</h3>
             <p>
               {t("Each plan is bought over x402: a 402, a payment, the answer. No API key, no subscription — and the fee is sponsored.", "Cada plan se compra con x402: un 402, un pago, la respuesta. Sin llave de API ni suscripción — y la comisión va patrocinada.")}
             </p>
-          </article>
+          </TiltCard>
 
-          <article className="bento bento-privy">
+          <TiltCard className="bento bento-privy" max={4}>
             <BentoIcon><><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18M16 14.5h2" /></></BentoIcon>
             <span className="bento-by">Privy</span>
             <h3>{t("Get paid in your own wallet", "Cobra en tu propia cartera")}</h3>
             <p>
               {t("Whoever paid signs in with an email and the money lands in a wallet they own — no seed phrase, no crypto words.", "Quien pagó entra con su correo y el dinero llega a una cartera suya — sin frases secretas ni palabras cripto.")}
             </p>
-          </article>
+          </TiltCard>
 
-          <article className="bento bento-world">
+          <TiltCard className="bento bento-world" max={4}>
             <BentoIcon><><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" /></></BentoIcon>
             <span className="bento-by">World ID · Selfie Check</span>
             <h3>{t("One real person, one seat", "Una persona real, un lugar")}</h3>
             <p>
               {t("Tables can ask for verified people: no fake guests, nobody holding two seats — and a lost seat comes back by verifying again.", "La mesa puede pedir personas verificadas: sin invitados falsos ni alguien con dos lugares — y si pierdes tu lugar, lo recuperas verificándote otra vez.")}
             </p>
-          </article>
+          </TiltCard>
         </section>
       </Reveal>
 
       <Reveal>
         <section className="lp-engine" aria-labelledby="lp-engine-title">
-          <div className="lp-engine-graph">
+          <ReplayInView className="lp-engine-graph">
             <DebtGraph nodes={VALLE_DE_BRAVO.people.map((p) => ({ id: p.id, initial: p.initial, name: p.name, isYou: p.isYou }))} grossEdges={grossEdges} transfers={transfers} />
-          </div>
+          </ReplayInView>
           <div className="lp-engine-copy">
             <span className="lp-kicker">{t("For a whole trip", "Para un viaje entero")}</span>
             <h2 id="lp-engine-title">{t("Squashed to the provable minimum", "Comprimido al mínimo demostrable")}</h2>
             <div className="lp-engine-numbers">
-              <span className="lp-n" style={{ color: "var(--owed)" }}>{grossEdges.length}</span>
+              <CountUp className="lp-n" style={{ color: "var(--owed)" }} to={grossEdges.length} format={(v) => String(Math.round(v))} />
               <svg width="30" height="16" viewBox="0 0 34 18" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M1 9h29M24 3l7 6-7 6" />
               </svg>
-              <span className="lp-n" style={{ color: "var(--settled)" }}>{transfers.length}</span>
+              <CountUp className="lp-n" style={{ color: "var(--settled)" }} from={grossEdges.length} to={transfers.length} format={(v) => String(Math.round(v))} duration={1.8} />
             </div>
             <p className="lp-engine-cap">
               {t(
@@ -229,9 +250,11 @@ export default function Landing() {
           <LogoMark size={64} className="lp-final-mark" />
           <h2>{t("Is the bill already here?", "¿Ya llegó la cuenta?")}</h2>
           <p>{t("Open it, show the QR, and let the table say yes.", "Ábrela, enseña el QR y deja que la mesa diga que sí.")}</p>
-          <PressLink href="/nuevo" className="btn lp-final-cta">
-            {t("Split a bill", "Dividir una cuenta")}
-          </PressLink>
+          <Magnetic>
+            <PressLink href="/nuevo" className="btn lp-final-cta">
+              {t("Split a bill", "Dividir una cuenta")}
+            </PressLink>
+          </Magnetic>
         </section>
       </Reveal>
 
@@ -252,11 +275,24 @@ export default function Landing() {
   );
 }
 
-function FlowStep({ n, title, body, icon }: { n: number; title: string; body: string; icon: React.ReactNode }) {
+function FlowStep({
+  n,
+  title,
+  body,
+  icon,
+  motion,
+}: {
+  n: number;
+  title: string;
+  body: string;
+  icon: React.ReactNode;
+  motion: "scan" | "split" | "check";
+}) {
   return (
-    <article className="lp-step">
+    <TiltCard className={`lp-step step-${motion}`}>
       <div className="lp-step-top">
         <span className="lp-step-icon" aria-hidden="true">
+          {motion === "scan" && <i className="scan-line" />}
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             {icon}
           </svg>
@@ -265,7 +301,7 @@ function FlowStep({ n, title, body, icon }: { n: number; title: string; body: st
       </div>
       <h3>{title}</h3>
       <p>{body}</p>
-    </article>
+    </TiltCard>
   );
 }
 
@@ -289,5 +325,19 @@ function BentoIcon({ children }: { children: React.ReactNode }) {
         {children}
       </svg>
     </span>
+  );
+}
+
+/** A line that rises in word by word — CSS, so the words rest visible. */
+function Words({ text, offset = 0 }: { text: string; offset?: number }) {
+  return (
+    <>
+      {text.split(" ").map((w, i) => (
+        <span key={`${w}-${i}`} className="word" aria-hidden="true" style={{ animationDelay: `${(offset + i) * 70}ms` }}>
+          {w}
+          {i < text.split(" ").length - 1 ? "\u00a0" : ""}
+        </span>
+      ))}
+    </>
   );
 }

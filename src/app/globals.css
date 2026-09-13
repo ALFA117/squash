@@ -3171,3 +3171,292 @@ a[class*="avatar"] {
     grid-column: auto;
   }
 }
+
+/* ── landing motion ──────────────────────────────────────────────────────
+   Every rule animates FROM somewhere TO the resting state, so a frozen or
+   skipped animation still leaves the finished page on screen. */
+
+:root {
+  --spot: rgba(47, 191, 132, 0.12);
+}
+
+:root[data-theme="dark"] {
+  --spot: rgba(98, 214, 164, 0.1);
+}
+
+/* reading progress */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 30;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--settled), var(--settled-strong));
+}
+
+/* headline, word by word */
+.word {
+  display: inline-block;
+  animation: word-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes word-rise {
+  from { opacity: 0; transform: translateY(0.45em) rotate(2deg); filter: blur(4px); }
+}
+
+/* the accent draws its own underline once the words are in */
+.lp-accent {
+  position: relative;
+  display: inline;
+  background-image: linear-gradient(90deg, color-mix(in srgb, var(--settled) 30%, transparent), color-mix(in srgb, var(--settled) 30%, transparent));
+  background-repeat: no-repeat;
+  background-position: 0 92%;
+  background-size: 100% 0.14em;
+  animation: underline-draw 900ms cubic-bezier(0.16, 1, 0.3, 1) 650ms backwards;
+}
+
+@keyframes underline-draw {
+  from { background-size: 0% 0.14em; }
+}
+
+/* magnetic wrapper */
+.magnetic {
+  display: inline-flex;
+  will-change: transform;
+}
+
+.cta-arrow {
+  transition: transform 220ms var(--ease-out);
+}
+
+.lp-cta-main:hover .cta-arrow {
+  transform: translateX(4px);
+}
+
+/* tilting cards and their light */
+.tilt {
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.tilt-light {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms var(--ease-out);
+  z-index: 0;
+}
+
+.tilt:hover .tilt-light {
+  opacity: 1;
+}
+
+.tilt > :not(.tilt-light) {
+  position: relative;
+  z-index: 1;
+}
+
+.lp-step {
+  position: relative;
+  overflow: hidden;
+}
+
+/* the three steps act themselves out */
+.lp-step-icon {
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-line {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--settled);
+  box-shadow: 0 0 8px var(--settled);
+  animation: scan 2.2s ease-in-out infinite;
+}
+
+@keyframes scan {
+  0%, 100% { top: 8px; }
+  50% { top: calc(100% - 10px); }
+}
+
+.step-split .lp-step-icon svg {
+  animation: split-turn 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes split-turn {
+  0%, 60% { transform: rotate(0deg); }
+  80%, 100% { transform: rotate(90deg); }
+}
+
+.step-check .lp-step-icon path {
+  stroke-dasharray: 24;
+  animation: check-loop 2.6s ease-in-out infinite;
+}
+
+@keyframes check-loop {
+  0% { stroke-dashoffset: 24; }
+  35%, 80% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 0; opacity: 0.35; }
+}
+
+/* entrances for the steps and the bento, staggered */
+.lp-flow > *,
+.lp-bento > * {
+  animation: card-in 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-timeline: view();
+  animation-range: entry 0% entry 55%;
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(22px) scale(0.97); }
+}
+
+@supports not (animation-timeline: view()) {
+  .lp-flow > *,
+  .lp-bento > * {
+    animation-timeline: auto;
+  }
+  .lp-flow > :nth-child(2),
+  .lp-bento > :nth-child(3) { animation-delay: 80ms; }
+  .lp-flow > :nth-child(3),
+  .lp-bento > :nth-child(4) { animation-delay: 160ms; }
+  .lp-bento > :nth-child(5) { animation-delay: 240ms; }
+}
+
+/* bento icons come alive on hover */
+.bento .bento-icon svg {
+  transition: transform 420ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.bento:hover .bento-icon svg {
+  transform: scale(1.12) rotate(-6deg);
+}
+
+.bento-world .bento-icon svg {
+  animation: globe 9s linear infinite;
+}
+
+@keyframes globe {
+  to { transform: rotate(360deg); }
+}
+
+.bento-privy .bento-icon {
+  position: relative;
+}
+
+.bento-privy .bento-icon::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--settled);
+  top: -4px;
+  left: 50%;
+  margin-left: -4px;
+  animation: coin-drop 2.4s cubic-bezier(0.5, 0, 0.75, 0) infinite;
+}
+
+@keyframes coin-drop {
+  0% { transform: translateY(-6px); opacity: 0; }
+  20% { opacity: 1; }
+  55% { transform: translateY(18px); opacity: 1; }
+  60%, 100% { transform: translateY(18px); opacity: 0; }
+}
+
+.bento-x402 .bento-icon path {
+  stroke-dasharray: 16;
+  animation: meter-lines 2s ease-in-out infinite;
+}
+
+@keyframes meter-lines {
+  0% { stroke-dashoffset: 16; }
+  50%, 100% { stroke-dashoffset: 0; }
+}
+
+/* the conversion card breathes its arrow */
+.lp-fx-arrow {
+  animation: arrow-nudge 1.8s ease-in-out infinite;
+}
+
+@keyframes arrow-nudge {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(4px); }
+}
+
+/* chips pop in one after another */
+.lp-chips .lp-chip {
+  animation: chip-pop 480ms cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+  animation-timeline: view();
+  animation-range: entry 10% entry 70%;
+}
+
+@keyframes chip-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.9); }
+}
+
+/* the closing card: a light that circles its edge */
+.lp-final {
+  isolation: isolate;
+}
+
+.lp-final::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: conic-gradient(from 0deg, transparent 0 70%, rgba(47, 191, 132, 0.55) 80%, transparent 90%);
+  animation: orbit 6s linear infinite;
+}
+
+.lp-final::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(47, 191, 132, 0.28), transparent 60%),
+    linear-gradient(180deg, #1b2430, #10161e);
+}
+
+@keyframes orbit {
+  to { transform: rotate(360deg); }
+}
+
+.lp-final-mark {
+  animation: mark-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes mark-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word,
+  .lp-accent,
+  .scan-line,
+  .step-split .lp-step-icon svg,
+  .step-check .lp-step-icon path,
+  .lp-flow > *,
+  .lp-bento > *,
+  .bento-world .bento-icon svg,
+  .bento-privy .bento-icon::after,
+  .bento-x402 .bento-icon path,
+  .lp-fx-arrow,
+  .lp-chips .lp-chip,
+  .lp-final::before,
+  .lp-final-mark {
+    animation: none !important;
+  }
+}
