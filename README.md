@@ -208,6 +208,8 @@ scripts/test-dinner.mjs   a whole dinner plus five attacks, against any server
 The plan screen calls the API over HTTP rather than importing the engine, so the
 paid path gets exercised end to end the moment the 402 challenge is switched on.
 
+for the Eth Online 2026
+
 ## License
 
 MIT
