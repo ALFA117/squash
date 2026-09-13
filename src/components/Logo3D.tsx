@@ -3,11 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * The Squash mark, in three dimensions.
+ * The Squash mark, in three dimensions, with a heartbeat.
  *
- * The vector logo (public/brand/mark.svg) is extruded into a solid with a
- * bevel and lit like brushed metal. It sways on its own and leans toward the
- * pointer — or the finger — so it reads as an object, not a picture.
+ * The logo is split in two, both taken from the real artwork:
+ *  - the network — every edge and the eye — traced to SVG with the vertices
+ *    cut out (public/brand/mark-network.svg), extruded into one solid that
+ *    never changes shape;
+ *  - the 40 vertices, found in the artwork by shape (public/brand/
+ *    mark-nodes.json), each a sphere that beats: lub-dub, then rest. The beat
+ *    starts at the eye and ripples outward, and each vertex flushes green at
+ *    the top of its beat. Only the vertices move; the edges hold still.
  *
  * Built to never cost the page anything it cannot afford:
  *  - the flat logo shows first and stays if WebGL is missing or anything
@@ -18,6 +23,28 @@ import { useEffect, useRef, useState } from "react";
  *  - with reduced motion it is a still, lit render — no loop at all;
  *  - it follows the light/dark theme.
  */
+
+interface NodeSpec {
+  x: number;
+  y: number;
+  r: number;
+}
+
+/** One heartbeat over a period of 0..1: a strong beat, a softer one, rest. */
+function beat(p: number) {
+  const lub = Math.exp(-(((p - 0.07) / 0.05) ** 2));
+  const dub = 0.65 * Math.exp(-(((p - 0.26) / 0.06) ** 2));
+  return lub + dub;
+}
+
+const PERIOD = 1.25; // seconds per beat
+const RIPPLE = 0.42; // fraction of a beat for the wave to reach the rim
+const SWING = 0.42; // at the top of the beat: ~1.4x its resting size
+
+/** The hole cut for each vertex in mark-network.svg is 1.06·r + 3 (artwork
+ * units); at rest the sphere fills it exactly, so the logo reads as drawn. */
+const restRadius = (r: number) => r * 1.06 + 3.5;
+
 export function Logo3D({ alt }: { alt: string }) {
   const host = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
@@ -37,12 +64,15 @@ export function Logo3D({ alt }: { alt: string }) {
       const THREE = await import("three");
       const { SVGLoader } = await import("three/addons/loaders/SVGLoader.js");
       const { RoomEnvironment } = await import("three/addons/environments/RoomEnvironment.js");
-      const svgText = await fetch("/brand/mark.svg").then((r) => r.text());
+      const [svgText, nodeData] = await Promise.all([
+        fetch("/brand/mark-network.svg").then((r) => r.text()),
+        fetch("/brand/mark-nodes.json").then((r) => r.json() as Promise<{ nodes: NodeSpec[] }>),
+      ]);
       if (disposed) return;
 
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      // ── geometry: the real logo, extruded ────────────────────────────────
+      // ── the network: edges and eye, extruded ─────────────────────────────
       const data = new SVGLoader().parse(svgText);
       const shapes = data.paths.flatMap((p) => SVGLoader.createShapes(p));
       const geometry = new THREE.ExtrudeGeometry(shapes, {
@@ -53,10 +83,11 @@ export function Logo3D({ alt }: { alt: string }) {
         bevelSegments: 3,
         curveSegments: 5,
       });
-      geometry.center();
-
       geometry.computeBoundingBox();
       const box = geometry.boundingBox!;
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      geometry.translate(-center.x, -center.y, -center.z);
       const size = new THREE.Vector3();
       box.getSize(size);
       const unit = 2 / Math.max(size.x, size.y);
@@ -66,23 +97,58 @@ export function Logo3D({ alt }: { alt: string }) {
         getComputedStyle(document.documentElement).getPropertyValue("--ink").trim() || "#1b2430";
       const face = new THREE.MeshStandardMaterial({ metalness: 0.65, roughness: 0.34 });
       const side = new THREE.MeshStandardMaterial({ metalness: 0.9, roughness: 0.22 });
+      const nodeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.55, roughness: 0.28 });
+      const ink = new THREE.Color();
+      const glow = new THREE.Color("#2fbf84");
       const scene = new THREE.Scene();
       const paint = () => {
-        const ink = new THREE.Color(readInk());
+        ink.set(readInk());
         const dark = document.documentElement.dataset.theme === "dark";
         // On paper: deep slate that still shows its bevel. On a dark ground:
         // the light ink becomes polished metal.
         face.color.copy(ink);
-        side.color.copy(ink).lerp(new THREE.Color("#2fbf84"), dark ? 0.22 : 0.45);
+        side.color.copy(ink).lerp(glow, dark ? 0.22 : 0.45);
         scene.environmentIntensity = dark ? 1 : 0.35;
       };
       paint();
 
-      const mesh = new THREE.Mesh(geometry, [face, side]);
-      mesh.scale.set(unit, -unit, unit); // SVG y points down
-      const pivot = new THREE.Group();
-      pivot.add(mesh);
+      const network = new THREE.Mesh(geometry, [face, side]);
+      network.scale.set(unit, -unit, unit); // SVG y points down
 
+      // ── the vertices: one sphere each, all in one draw call ──────────────
+      const nodes = nodeData.nodes;
+      const reach = Math.max(...nodes.map((n) => Math.hypot(n.x - center.x, n.y - center.y))) || 1;
+      const sphere = new THREE.SphereGeometry(1, 28, 20);
+      const beads = new THREE.InstancedMesh(sphere, nodeMat, nodes.length);
+      const place = nodes.map((n) => ({
+        x: (n.x - center.x) * unit,
+        y: -(n.y - center.y) * unit,
+        r: restRadius(n.r) * unit,
+        delay: (Math.hypot(n.x - center.x, n.y - center.y) / reach) * RIPPLE,
+      }));
+      const m = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const pos = new THREE.Vector3();
+      const scl = new THREE.Vector3();
+      const tint = new THREE.Color();
+      // t === null: at rest (reduced motion) — every vertex its drawn size.
+      const pulse = (t: number | null) => {
+        place.forEach((p, i) => {
+          const b = t === null ? 0 : beat((((t / PERIOD - p.delay) % 1) + 1) % 1);
+          const s = p.r * (1 + SWING * b);
+          pos.set(p.x, p.y, 0);
+          scl.set(s, s, s);
+          m.compose(pos, q, scl);
+          beads.setMatrixAt(i, m);
+          beads.setColorAt(i, tint.copy(ink).lerp(glow, Math.min(1, b) * 0.7));
+        });
+        beads.instanceMatrix.needsUpdate = true;
+        if (beads.instanceColor) beads.instanceColor.needsUpdate = true;
+      };
+      pulse(reduce ? null : 0);
+
+      const pivot = new THREE.Group();
+      pivot.add(network, beads);
       scene.add(pivot);
       scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.6));
       const key = new THREE.DirectionalLight(0xffffff, 2.4);
@@ -117,7 +183,7 @@ export function Logo3D({ alt }: { alt: string }) {
       fit();
       el.appendChild(renderer.domElement);
 
-      // ── motion: idle sway + lean toward the pointer ──────────────────────
+      // ── motion: the beat, an idle sway, and a lean toward the pointer ────
       const target = { x: 0, y: 0 };
       const onPointer = (e: PointerEvent) => {
         const r = el.getBoundingClientRect();
@@ -134,7 +200,8 @@ export function Logo3D({ alt }: { alt: string }) {
       const clock = new THREE.Clock();
       const frame = () => {
         const t = clock.getElapsedTime();
-        const swayY = Math.sin(t * 0.55) * 0.32;
+        pulse(t);
+        const swayY = Math.sin(t * 0.55) * 0.3;
         const swayX = Math.sin(t * 0.38) * 0.1;
         pivot.rotation.y += (swayY + target.y - pivot.rotation.y) * 0.06;
         pivot.rotation.x += (swayX + target.x - pivot.rotation.x) * 0.06;
@@ -173,7 +240,10 @@ export function Logo3D({ alt }: { alt: string }) {
 
       const mo = new MutationObserver(() => {
         paint();
-        renderer.render(scene, camera);
+        if (reduce || !raf) {
+          pulse(reduce ? null : clock.getElapsedTime());
+          renderer.render(scene, camera);
+        }
       });
       mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
@@ -192,9 +262,12 @@ export function Logo3D({ alt }: { alt: string }) {
         el.removeEventListener("pointermove", onPointer);
         el.removeEventListener("pointerleave", onLeave);
         geometry.dispose();
+        sphere.dispose();
+        beads.dispose();
         envMap.dispose();
         face.dispose();
         side.dispose();
+        nodeMat.dispose();
         renderer.dispose();
         renderer.domElement.remove();
       };
