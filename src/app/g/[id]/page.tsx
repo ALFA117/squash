@@ -1237,7 +1237,7 @@ function JoinView({
   return (
     <main className="phone">
       <form onSubmit={join} className="join-view">
-        <LogoMark size={64} className="join-mark" />
+        <LogoMark size={56} badge className="join-mark" />
         <span className="label">
           {payer ? t(`${payer.name.toUpperCase()} INVITED YOU`, `${payer.name.toUpperCase()} TE INVITÓ`) : ""}
         </span>

@@ -34,8 +34,8 @@ export default function Landing() {
     <main className="landing">
       <ScrollProgress />
       <nav className="lp-top" aria-label="Squash">
-        <LogoMark size={36} />
-        <Wordmark width={116} />
+        <LogoMark size={38} badge />
+        <Wordmark width={120} />
       </nav>
 
       <header className="lp-hero">

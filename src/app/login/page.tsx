@@ -11,8 +11,8 @@ export default function LoginPage() {
   return (
     <main className="phone" style={{ padding: "26px 24px 24px" }}>
       <div className="brand-row">
-        <LogoMark size={32} />
-        <Wordmark width={96} />
+        <LogoMark size={32} badge />
+        <Wordmark width={100} />
       </div>
 
       <div className="join-trip">

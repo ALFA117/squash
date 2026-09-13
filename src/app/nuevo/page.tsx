@@ -77,7 +77,7 @@ export default function NewBill() {
           </svg>
         </Link>
         <h1 className="title">{t("Split a bill", "Dividir una cuenta")}</h1>
-        <LogoMark size={30} className="head-mark" />
+        <LogoMark size={34} badge className="head-mark" />
       </div>
 
       <form onSubmit={submit} className="bill-form">

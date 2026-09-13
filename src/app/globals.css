@@ -3460,3 +3460,48 @@ a[class*="avatar"] {
     animation: none !important;
   }
 }
+
+/* ── the small mark: heavier cut, sitting in an app-icon badge ──────────── */
+
+.logo-mark-bold {
+  --logo: url("/brand/mark-bold.svg");
+}
+
+.logo-badge {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  padding: 7px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--settled) 18%, transparent), transparent 65%),
+    var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: 0 6px 16px rgba(27, 36, 48, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.logo-badge:hover {
+  transform: rotate(-6deg) scale(1.05);
+}
+
+:root[data-theme="dark"] .logo-badge {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.head-mark.logo-badge {
+  width: auto;
+  height: auto;
+  margin-left: auto;
+  padding: 6px;
+  border-radius: 12px;
+}
+
+.join-mark.logo-badge {
+  width: auto;
+  height: auto;
+  padding: 12px;
+  border-radius: 20px;
+  margin-bottom: 6px;
+}
