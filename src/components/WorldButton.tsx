@@ -1,6 +1,6 @@
 "use client";
 
-import { IDKitRequestWidget, selfieCheckLegacy, type IDKitResult, type RpContext } from "@worldcoin/idkit";
+import { deviceLegacy, IDKitRequestWidget, selfieCheckLegacy, type IDKitResult, type RpContext } from "@worldcoin/idkit";
 import { useState } from "react";
 import { useLocale } from "./Locale";
 
@@ -51,6 +51,13 @@ export default function WorldButton({
   }
 
   const env = (process.env.NEXT_PUBLIC_WORLD_ENV as "production" | "staging" | "sandbox") || "sandbox";
+  // Selfie Check is the credential we ask for. While World has not enabled it
+  // for this app, NEXT_PUBLIC_WORLD_CREDENTIAL=device falls back to World ID's
+  // device credential — the same flow, available in the regular World App.
+  const preset =
+    process.env.NEXT_PUBLIC_WORLD_CREDENTIAL === "device"
+      ? deviceLegacy({ signal: groupId })
+      : selfieCheckLegacy({ signal: groupId });
 
   return (
     <>
@@ -74,7 +81,7 @@ export default function WorldButton({
           action={ctx.action}
           rp_context={ctx.rp_context}
           allow_legacy_proofs={true}
-          preset={selfieCheckLegacy({ signal: groupId })}
+          preset={preset}
           environment={env}
           language={locale === "es" ? "es" : "en"}
           handleVerify={async (result) => {
