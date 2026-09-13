@@ -101,6 +101,11 @@ person impossible. Confirmations cannot start until every seat is verified. And
 if someone loses their phone, passing Selfie Check again gives them their seat
 back. Feedback on the integration: [docs/WORLD_FEEDBACK.md](docs/WORLD_FEEDBACK.md).
 
+*Demo note:* Selfie Check access for this app was not granted in time, so the
+live demo **simulates the World App step** and labels it on screen ("DEMO ·
+SIMULATED"). The rules built on it are real; switching demo mode off hands the
+same flow to the real IDKit widget.
+
 ## Security
 
 - **Anyone with the link can read a group; only the server can write.**

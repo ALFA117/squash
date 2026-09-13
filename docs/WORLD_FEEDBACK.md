@@ -121,6 +121,13 @@ Packages: `@worldcoin/idkit@4.2.3`, `@worldcoin/idkit-server@1.1.1`.
   QR ("Connect your World ID").
 - RP request signing verified (65-byte signature, 32-byte nonce, TTL 300 s).
 - A completed proof depends on (1) the signer address being registered for the
-  RP and (2) Selfie Check being enabled for the app. We could not install the
-  sandbox World ID app, so `NEXT_PUBLIC_WORLD_CREDENTIAL=device` switches the
-  same flow to World ID's device credential, available in the regular World App.
+  RP and (2) Selfie Check being enabled for the app. Neither landed in time, and
+  the sandbox World ID app could not be installed.
+- **So the live demo runs in a clearly-labelled demo mode** (`WORLD_DEMO=1`):
+  the World App Selfie Check step is *simulated* on screen — tagged
+  "DEMO · SIMULATED", badges read "verified · demo" — and the server accepts
+  that simulated proof only in demo mode, with its nullifier prefixed `demo:`.
+  Everything around it (verified-only tables, one seat per person, eligibility
+  to lock, seat recovery) runs for real and is tested
+  (`scripts/test-world-demo.mjs`, 13 checks). Turning demo mode off hands the
+  same flow to the real IDKit widget unchanged.

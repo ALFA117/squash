@@ -63,7 +63,7 @@ works, what is written but never executed, and what has not been started.
 - **Eligibility:** confirmations cannot start until every seat is verified.
 - **Continuity:** lost your phone? Pass Selfie Check again → same nullifier → your seat back, no admin needed.
 - Code: `src/lib/world.ts`, `src/components/WorldButton.tsx`, `src/app/api/world/context/route.ts`. Feedback: [docs/WORLD_FEEDBACK.md](docs/WORLD_FEEDBACK.md).
-- Turns on when `NEXT_PUBLIC_WORLD_APP_ID`, `WORLD_RP_ID`, `WORLD_RP_SIGNING_KEY` are set (and `NEXT_PUBLIC_WORLD_ENV=sandbox` for sandbox proofs).
+- **Live demo note:** Selfie Check access was not granted in time, so the deployed app runs a clearly-labelled **simulation of the World App step** (`WORLD_DEMO=1`, "DEMO · SIMULATED"); the seat rules around it are real and tested (`scripts/test-world-demo.mjs`). With demo mode off, the same flow uses the real IDKit widget (`NEXT_PUBLIC_WORLD_APP_ID`, `WORLD_RP_ID`, `WORLD_RP_SIGNING_KEY`).
 
 ---
 
