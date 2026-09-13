@@ -4,6 +4,7 @@ import { LogoMark, Wordmark } from "@/components/Logo";
 import { Logo3D } from "@/components/Logo3D";
 import { PressLink } from "@/components/Press";
 import { Reveal } from "@/components/Reveal";
+import { DebtGraph } from "@/components/DebtGraph";
 import { useLocale } from "@/components/Locale";
 import { formatUsd } from "@/lib/money";
 import { formatCents, netExpenses } from "@/lib/netting";
@@ -88,116 +89,165 @@ export default function Landing() {
       </Reveal>
 
       <Reveal>
-        <section className="lp-section">
-          <h2>{t("Pesos in, real dollars out", "Entran pesos, salen dólares de verdad")}</h2>
-          <div className="lp-fx" aria-live="polite">
-            <div>
-              <span className="lp-fx-n">{formatCents(SAMPLE_BILL)}</span>
-              <span className="lp-cap">MXN · {t("the bill", "la cuenta")}</span>
+        <section className="lp-dollars" aria-labelledby="lp-dollars-title">
+          <div className="lp-dollars-copy">
+            <span className="lp-kicker">{t("Real money, exactly", "Dinero real, exacto")}</span>
+            <h2 id="lp-dollars-title">{t("Pesos in, real dollars out", "Entran pesos, salen dólares de verdad")}</h2>
+            <ul className="lp-points">
+              <Point icon={<path d="M3 12h4l3-8 4 16 3-8h4" />}>
+                <strong>{t("Today's rate, frozen.", "El tipo de cambio de hoy, congelado.")}</strong>{" "}
+                {t("It is fixed on the bill the moment confirmations start, so everyone agrees to the exact dollars that move.", "Se fija en la cuenta al pedir confirmaciones: todos aceptan exactamente los dólares que se van a mover.")}
+              </Point>
+              <Point icon={<path d="M12 3v18M7 8h7a3 3 0 010 6H9a3 3 0 000 6h8" />}>
+                <strong>{t("Not a cent lost.", "Sin perder un centavo.")}</strong>{" "}
+                {t("The dollar shares always add up to the converted total.", "Las partes en dólares siempre suman el total convertido.")}
+              </Point>
+              <Point icon={<><circle cx="12" cy="12" r="9" /><path d="M12 7v10M9 10h4.5a1.5 1.5 0 010 3H10a1.5 1.5 0 000 3h5" /></>}>
+                <strong>{t("Dollars on Hedera.", "Dólares en Hedera.")}</strong>{" "}
+                {t("On testnet they are tUSD, a token where one unit is one cent; on mainnet the same code settles in USDC.", "En pruebas son tUSD, un token donde una unidad es un centavo; en la red principal el mismo código liquida en USDC.")}
+              </Point>
+            </ul>
+          </div>
+
+          <div className="lp-fx-card" aria-live="polite">
+            <span className="label">{t("A $2,500 DINNER, TODAY", "UNA CENA DE $2,500, HOY")}</span>
+            <div className="lp-fx-row">
+              <span className="lp-fx-big">{formatCents(SAMPLE_BILL)}</span>
+              <span className="lp-fx-unit">MXN</span>
             </div>
-            <svg width="30" height="16" viewBox="0 0 34 18" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M1 9h29M24 3l7 6-7 6" />
+            <svg className="lp-fx-arrow" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 4v16M6 14l6 6 6-6" />
             </svg>
-            <div>
-              <span className="lp-fx-n lp-fx-usd">{rate ? formatUsd(Math.round(SAMPLE_BILL * rate.usdPerUnit)) : "US$—"}</span>
-              <span className="lp-cap">
-                {rate
-                  ? t(`at ${rate.usdPerUnit} USD per peso, ${rate.asOf}`, `a ${rate.usdPerUnit} USD por peso, ${rate.asOf}`)
-                  : t("today's rate", "tipo de cambio de hoy")}
-              </span>
+            <div className="lp-fx-row">
+              <span className="lp-fx-big lp-fx-usd">{rate ? formatUsd(Math.round(SAMPLE_BILL * rate.usdPerUnit)) : "US$—"}</span>
             </div>
-          </div>
-          <p>
-            {t(
-              "When confirmations start, each share is converted once at today's rate and frozen on the bill, so everyone agrees to the exact dollar amount that moves. Rounding never loses a cent: the dollar shares always add up to the converted total.",
-              "Al pedir confirmaciones, cada parte se convierte una sola vez al tipo de cambio del día y queda congelada en la cuenta, así que todos aceptan exactamente los dólares que se van a mover. El redondeo no pierde centavos: las partes en dólares siempre suman el total convertido.",
-            )}
-          </p>
-          <p className="lp-muted">
-            {t("On testnet the dollars are", "En la red de pruebas los dólares son")}{" "}
-            <a href={TOKEN_URL} target="_blank" rel="noreferrer">tUSD</a>
-            {t(
-              ", a Hedera token where one unit is one cent. On mainnet the same code settles in USDC.",
-              ", un token de Hedera donde una unidad es un centavo. En la red principal el mismo código liquida en USDC.",
-            )}
-          </p>
-        </section>
-      </Reveal>
-
-      <Reveal>
-        <section className="lp-numbers" aria-label={t("The engine", "El motor")}>
-          <div>
-            <span className="lp-n" style={{ color: "var(--owed)" }}>
-              {grossEdges.length}
+            <span className="lp-fx-rate">
+              {rate ? t(`1 MXN = ${rate.usdPerUnit} USD · ${rate.asOf}`, `1 MXN = ${rate.usdPerUnit} USD · ${rate.asOf}`) : t("Getting today's rate…", "Consultando el tipo de cambio…")}
             </span>
-            <span className="lp-cap">{t("crossed debts between", "deudas cruzadas entre")} {people} {t("people", "personas")}</span>
-          </div>
-          <svg width="34" height="18" viewBox="0 0 34 18" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M1 9h29M24 3l7 6-7 6" />
-          </svg>
-          <div>
-            <span className="lp-n" style={{ color: "var(--settled)" }}>
-              {transfers.length}
-            </span>
-            <span className="lp-cap">{t("transfers", "transferencias")} · {Math.round(compression * 100)}% {t("fewer", "menos")}</span>
-          </div>
-        </section>
-      </Reveal>
-
-      <Reveal>
-        <section className="lp-section">
-          <h2>{t("A whole trip, squashed to the minimum", "Un viaje entero, comprimido al mínimo")}</h2>
-          <p>
-            {t(
-              "When a group has been paying for each other for days, the debts cross. The engine finds the provable minimum number of transfers: every plan splits into groups that sum to zero, a group of",
-              "Cuando un grupo lleva días pagándose cosas, las deudas se cruzan. El motor encuentra el mínimo demostrable de transferencias: todo plan se descompone en grupos que suman cero, un grupo de",
-            )}{" "}
-            <em>k</em> {t("costs", "cuesta")} <em>k−1</em>
-            {t(", and the most disjoint groups are found exactly.", ", y se encuentran exactamente los más grupos disjuntos posibles.")}
-          </p>
-        </section>
-      </Reveal>
-
-      <Reveal>
-        <section className="lp-section">
-          <h2>{t("The engine charges per use, over x402", "El motor cobra por uso, con x402")}</h2>
-          <p>
-            {t("Every settlement plan — including each bill at the table — is bought from the engine:", "Cada plan de liquidación — incluida cada cuenta en la mesa — se le compra al motor:")}{" "}
-            {t("it answers", "responde")} <code>402</code>
-            {t(
-              ", the app pays in HBAR, and the facilitator sponsors the network fee. No API key, no subscription.",
-              ", la app paga en HBAR y el facilitador cubre la comisión de la red. Sin llave de API, sin suscripción.",
-            )}
-          </p>
-          <div className="lp-proof">
-            <a href="https://hashscan.io/testnet/transaction/0.0.7162784-1789249485-560257425" target="_blank" rel="noreferrer">
-              {t("A bill's plan, paid over x402 ↗", "El plan de una cuenta, pagado con x402 ↗")}
-            </a>
-            <a href="https://hashscan.io/testnet/topic/0.0.10452145" target="_blank" rel="noreferrer">
-              {t("Proof of every run, published ↗", "La prueba de cada cálculo, publicada ↗")}
-            </a>
-            <a href={TOKEN_URL} target="_blank" rel="noreferrer">
-              {t("The dollar token ↗", "El token de dólares ↗")}
+            <a className="lp-chip" href={TOKEN_URL} target="_blank" rel="noreferrer">
+              tUSD · Hedera ↗
             </a>
           </div>
         </section>
       </Reveal>
 
       <Reveal>
-        <footer className="lp-foot">
-          <p>
-            <strong>{t("What is real and what is demo.", "Qué es real y qué es demo.")}</strong>{" "}
-            {t(
-              "The exchange rate, the charge for the plan, and the settlement all really happen on Hedera testnet, and each one opens in the explorer. What is demo: the people at the table settle from test accounts the app holds, and the dollars are test dollars. A product gives each person their own wallet.",
-              "El tipo de cambio, el cobro por el plan y la liquidación ocurren de verdad en la red de pruebas de Hedera, y cada uno se abre en el explorador. Lo que es demo: la gente en la mesa liquida desde cuentas de prueba que tiene la app, y los dólares son de prueba. Un producto le da a cada quien su propia cartera.",
-            )}{" "}
-            <a href="https://github.com/ALFA117/squash" target="_blank" rel="noreferrer">
-              {t("The code ↗", "El código ↗")}
-            </a>
-          </p>
-          <p className="lp-muted">Squash · ETHOnline 2026 · Hedera testnet</p>
-        </footer>
+        <section className="lp-bento" aria-labelledby="lp-bento-title">
+          <header className="lp-bento-head">
+            <span className="lp-kicker">{t("How it holds together", "Cómo se sostiene")}</span>
+            <h2 id="lp-bento-title">{t("Four pieces, one promise", "Cuatro piezas, una sola promesa")}</h2>
+          </header>
+
+          <article className="bento bento-hedera">
+            <BentoIcon><path d="M4 12.5l5 5L20 6.5" /></BentoIcon>
+            <span className="bento-by">Hedera · Scheduled Transactions</span>
+            <h3>{t("Nobody pays until the last yes", "Nadie paga hasta el último sí")}</h3>
+            <p>
+              {t(
+                "Every payment of the bill is one transaction waiting on chain. It executes the moment the last person confirms — and if one person never does, no money moves for anyone.",
+                "Todos los pagos de la cuenta son una sola transacción esperando en la cadena. Se ejecuta en cuanto confirma el último — y si alguien nunca confirma, no se mueve el dinero de nadie.",
+              )}
+            </p>
+            <div className="bento-meter" aria-hidden="true">
+              <span className="on" /><span className="on" /><span className="on" /><span />
+            </div>
+          </article>
+
+          <article className="bento bento-x402">
+            <BentoIcon><path d="M4 7h16M4 12h10M4 17h6" /></BentoIcon>
+            <span className="bento-by">x402 · Blocky402</span>
+            <h3>{t("The engine charges per use", "El motor cobra por uso")}</h3>
+            <p>
+              {t("Each plan is bought over x402: a 402, a payment, the answer. No API key, no subscription — and the fee is sponsored.", "Cada plan se compra con x402: un 402, un pago, la respuesta. Sin llave de API ni suscripción — y la comisión va patrocinada.")}
+            </p>
+          </article>
+
+          <article className="bento bento-privy">
+            <BentoIcon><><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18M16 14.5h2" /></></BentoIcon>
+            <span className="bento-by">Privy</span>
+            <h3>{t("Get paid in your own wallet", "Cobra en tu propia cartera")}</h3>
+            <p>
+              {t("Whoever paid signs in with an email and the money lands in a wallet they own — no seed phrase, no crypto words.", "Quien pagó entra con su correo y el dinero llega a una cartera suya — sin frases secretas ni palabras cripto.")}
+            </p>
+          </article>
+
+          <article className="bento bento-world">
+            <BentoIcon><><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" /></></BentoIcon>
+            <span className="bento-by">World ID · Selfie Check</span>
+            <h3>{t("One real person, one seat", "Una persona real, un lugar")}</h3>
+            <p>
+              {t("Tables can ask for verified people: no fake guests, nobody holding two seats — and a lost seat comes back by verifying again.", "La mesa puede pedir personas verificadas: sin invitados falsos ni alguien con dos lugares — y si pierdes tu lugar, lo recuperas verificándote otra vez.")}
+            </p>
+          </article>
+        </section>
       </Reveal>
+
+      <Reveal>
+        <section className="lp-engine" aria-labelledby="lp-engine-title">
+          <div className="lp-engine-graph">
+            <DebtGraph nodes={VALLE_DE_BRAVO.people.map((p) => ({ id: p.id, initial: p.initial, name: p.name, isYou: p.isYou }))} grossEdges={grossEdges} transfers={transfers} />
+          </div>
+          <div className="lp-engine-copy">
+            <span className="lp-kicker">{t("For a whole trip", "Para un viaje entero")}</span>
+            <h2 id="lp-engine-title">{t("Squashed to the provable minimum", "Comprimido al mínimo demostrable")}</h2>
+            <div className="lp-engine-numbers">
+              <span className="lp-n" style={{ color: "var(--owed)" }}>{grossEdges.length}</span>
+              <svg width="30" height="16" viewBox="0 0 34 18" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M1 9h29M24 3l7 6-7 6" />
+              </svg>
+              <span className="lp-n" style={{ color: "var(--settled)" }}>{transfers.length}</span>
+            </div>
+            <p className="lp-engine-cap">
+              {t(
+                `${grossEdges.length} crossed debts between ${people} friends become ${transfers.length} payments — ${Math.round(compression * 100)}% fewer. Not an estimate: the most disjoint groups that sum to zero, found exactly.`,
+                `${grossEdges.length} deudas cruzadas entre ${people} amigos se vuelven ${transfers.length} pagos — ${Math.round(compression * 100)}% menos. No es un estimado: los grupos disjuntos que suman cero, encontrados exactamente.`,
+              )}
+            </p>
+            <PressLink href="/join" className="btn btn-ghost lp-engine-cta">
+              {t("Open the sample trip", "Abrir el viaje de ejemplo")}
+            </PressLink>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal>
+        <section className="lp-proofs" aria-labelledby="lp-proofs-title">
+          <h2 id="lp-proofs-title">{t("Everything can be checked", "Todo se puede verificar")}</h2>
+          <p className="lp-muted">{t("Every claim on this page opens on HashScan, Hedera's public explorer.", "Cada afirmación de esta página se abre en HashScan, el explorador público de Hedera.")}</p>
+          <div className="lp-chips">
+            <a className="lp-chip" href="https://hashscan.io/testnet/transaction/0.0.7162784-1789249485-560257425" target="_blank" rel="noreferrer">{t("A plan paid over x402 ↗", "Un plan pagado con x402 ↗")}</a>
+            <a className="lp-chip" href="https://hashscan.io/testnet/schedule/0.0.10510675" target="_blank" rel="noreferrer">{t("A bill settled on the last yes ↗", "Una cuenta liquidada con el último sí ↗")}</a>
+            <a className="lp-chip" href="https://hashscan.io/testnet/transaction/0.0.10450391-1789253509-329841529" target="_blank" rel="noreferrer">{t("US$88.40 moved in tUSD ↗", "US$88.40 movidos en tUSD ↗")}</a>
+            <a className="lp-chip" href="https://hashscan.io/testnet/topic/0.0.10452145" target="_blank" rel="noreferrer">{t("Proof of every run (HCS) ↗", "Prueba de cada cálculo (HCS) ↗")}</a>
+            <a className="lp-chip" href="https://github.com/ALFA117/squash" target="_blank" rel="noreferrer">{t("The code ↗", "El código ↗")}</a>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal>
+        <section className="lp-final">
+          <LogoMark size={64} className="lp-final-mark" />
+          <h2>{t("Is the bill already here?", "¿Ya llegó la cuenta?")}</h2>
+          <p>{t("Open it, show the QR, and let the table say yes.", "Ábrela, enseña el QR y deja que la mesa diga que sí.")}</p>
+          <PressLink href="/nuevo" className="btn lp-final-cta">
+            {t("Split a bill", "Dividir una cuenta")}
+          </PressLink>
+        </section>
+      </Reveal>
+
+      <footer className="lp-foot2">
+        <div className="lp-foot2-brand">
+          <LogoMark size={26} />
+          <Wordmark width={84} />
+        </div>
+        <p>
+          {t(
+            "Hedera testnet. The exchange rate, the charge for the plan and the settlement really happen; the people at the table settle from test accounts the app holds, and the dollars are test dollars.",
+            "Red de pruebas de Hedera. El tipo de cambio, el cobro por el plan y la liquidación ocurren de verdad; la gente en la mesa liquida desde cuentas de prueba que tiene la app, y los dólares son de prueba.",
+          )}
+        </p>
+        <span className="lp-muted">Squash · ETHOnline 2026</span>
+      </footer>
     </main>
   );
 }
@@ -216,5 +266,28 @@ function FlowStep({ n, title, body, icon }: { n: number; title: string; body: st
       <h3>{title}</h3>
       <p>{body}</p>
     </article>
+  );
+}
+
+function Point({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <li>
+      <span className="lp-point-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          {icon}
+        </svg>
+      </span>
+      <span>{children}</span>
+    </li>
+  );
+}
+
+function BentoIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="bento-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {children}
+      </svg>
+    </span>
   );
 }

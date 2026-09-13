@@ -238,7 +238,7 @@ export function Logo3D({ alt }: { alt: string }) {
       scene.add(rim);
 
       const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-      camera.position.set(0, 0, 4.6);
+      camera.position.set(0, 0, 5.1); // room for the sway and for a beating vertex at the rim
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "low-power" });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
