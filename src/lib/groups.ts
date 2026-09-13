@@ -502,6 +502,56 @@ export async function reopenGroup(groupId: string, memberId: string, secret: str
 }
 
 /**
+ * Hand a seat back to someone who lost it.
+ *
+ * A seat lives in one browser. Switch phones, scan the QR with a different
+ * app, clear the browser — and the person is still at the table with a share
+ * to pay, but nothing on their phone says it is them. The admin, who can see
+ * everyone, issues that seat a fresh secret; the old one stops working. The
+ * secret travels in the fragment of a link (never sent to a server) that the
+ * admin shows as a QR.
+ */
+export async function reissueSeat(groupId: string, adminId: string, adminSecret: string, targetId: unknown) {
+  await authenticateAdmin(groupId, adminId, adminSecret);
+  const { group, members } = await getGroup(groupId);
+  if (group.status === "settled") throw new GroupError("This bill is already settled", 409);
+
+  const target = members.find((m) => m.id === targetId);
+  if (!target) throw new GroupError("That person is not in this group", 404);
+  if (target.is_admin) throw new GroupError("That is your own seat", 400);
+
+  const secret = randomBytes(32).toString("hex");
+  const { error } = await serverClient()
+    .from("member_secrets")
+    .upsert({ member_id: target.id, secret_hash: hashSecret(secret) }, { onConflict: "member_id" });
+  if (error) throw new GroupError(error.message, 502);
+
+  return { memberId: target.id, secret, name: target.name };
+}
+
+/** Take someone off the table — a duplicate, or a join by mistake. */
+export async function removeMember(groupId: string, adminId: string, adminSecret: string, targetId: unknown) {
+  await authenticateAdmin(groupId, adminId, adminSecret);
+  const { group, members } = await getGroup(groupId);
+  assertOpen(group);
+
+  const target = members.find((m) => m.id === targetId);
+  if (!target) throw new GroupError("That person is not in this group", 404);
+  if (target.is_admin || target.id === group.payer_id) throw new GroupError("The person who paid stays at the table", 400);
+
+  const db = serverClient();
+  await db.from("member_secrets").delete().eq("member_id", target.id);
+  const { error } = await db.from("members").delete().eq("id", target.id);
+  if (error) throw new GroupError(error.message, 502);
+
+  // In an equal split, one fewer person changes everyone's share.
+  if (group.split_mode === "equal") {
+    const fresh = await getGroup(groupId);
+    await applyEqualSplit(fresh.group, fresh.members);
+  }
+}
+
+/**
  * A person agrees to their share — which means signing the settlement.
  *
  * The confirmation is only recorded AFTER the signature lands on chain. The

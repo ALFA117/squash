@@ -3,8 +3,7 @@
 Documento de entrega. Aquí está dónde quedó el proyecto, hasta dónde tiene que
 llegar, y todo lo que necesitas para no adivinar nada.
 
-**Deadline: domingo 13 de septiembre, 10:00.** El check-in #2 del evento vence
-el jueves 10 a las 21:59 y lo cierra Alfa, no tú.
+**Deadline: domingo 13 de septiembre, 10:00.** Proyecto de una sola persona.
 
 ---
 
@@ -151,7 +150,7 @@ Todo esto corre hoy y se puede verificar en el explorador:
 
 | Pieza | Estado |
 |---|---|
-| **Dividir una cuenta en la mesa** — QR, tiempo real, 3 modos, todos confirman | listo, en vivo, 23/23 contra producción |
+| **Dividir una cuenta en la mesa** — QR, tiempo real, 3 modos, todos confirman | listo, en vivo, 27/27 contra producción |
 | Solver de mínimo demostrable | listo |
 | `POST /api/v1/net` cobrado por obligación | listo, en vivo |
 | Puerta x402 (esquema `exact` de Hedera vía Blocky402) | listo |
@@ -318,7 +317,7 @@ juez que haga la cuenta lo nota.
 node scripts/test-dinner.mjs https://squash-pay.vercel.app
 ```
 
-23 verificaciones contra producción: cinco ataques, el pago x402 del cálculo, el tipo de cambio y los tUSD que se movieron en cadena. Todas pasan.
+27 verificaciones contra producción: cinco ataques, el pago x402 del cálculo, el tipo de cambio y los tUSD que se movieron en cadena. Todas pasan.
 
 #### Cómo quedó construido
 

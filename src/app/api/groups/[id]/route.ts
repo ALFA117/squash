@@ -5,6 +5,8 @@ import {
   GroupError,
   joinGroup,
   lockGroup,
+  reissueSeat,
+  removeMember,
   reopenGroup,
   setOwnShare,
   setShareByAdmin,
@@ -70,6 +72,11 @@ export async function POST(request: Request, { params }: Ctx) {
         return NextResponse.json({ ok: true });
       case "confirm":
         return NextResponse.json(await confirmShare(id, memberId, secret));
+      case "reissue":
+        return NextResponse.json(await reissueSeat(id, memberId, secret, body.targetId));
+      case "remove":
+        await removeMember(id, memberId, secret, body.targetId);
+        return NextResponse.json({ ok: true });
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }

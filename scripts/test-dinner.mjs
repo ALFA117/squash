@@ -81,6 +81,14 @@ check("custom shares now add to the bill", g.members.reduce((a, m) => a + m.shar
 
 console.log("\n── confirm and pay ──────────────────────────────────────────");
 
+// ── fixing the table: a duplicate join, taken off by the admin ──
+const dup = await call(`/api/groups/${groupId}`, { action: "join", name: "Diego again" });
+const kickByGuest = await call(`/api/groups/${groupId}`, { action: "remove", targetId: dup.data.memberId, ...luis });
+check("a guest cannot take someone off the table", kickByGuest.status === 403, `status ${kickByGuest.status}`);
+const kick = await call(`/api/groups/${groupId}`, { action: "remove", targetId: dup.data.memberId, ...rosa });
+g = (await call(`/api/groups/${groupId}`)).data;
+check("the admin takes a duplicate join off the table", kick.status === 200 && g.members.length === 3, `${g.members.length} at the table`);
+
 const locked = await call(`/api/groups/${groupId}`, { action: "lock", ...rosa });
 check("Rosa asks for confirmations — settlement goes on chain", locked.status === 200, locked.data.scheduleId ?? locked.data.error);
 const scheduleId = locked.data.scheduleId;
@@ -101,8 +109,15 @@ check("the split is frozen while people are confirming", change.status === 409, 
 const d = await call(`/api/groups/${groupId}`, { action: "confirm", ...diego });
 check("Diego signs — still pending", d.status === 200 && d.data.executed === false, `executed ${d.data.executed}`);
 
-const l = await call(`/api/groups/${groupId}`, { action: "confirm", ...luis });
-check("Luis signs — it executes", l.status === 200 && l.data.executed === true, `executed ${l.data.executed}`);
+// Luis lost his phone: the admin hands his seat to the new one.
+const seatByGuest = await call(`/api/groups/${groupId}`, { action: "reissue", targetId: luis.memberId, ...diego });
+check("a guest cannot hand out seats", seatByGuest.status === 403, `status ${seatByGuest.status}`);
+const seat = await call(`/api/groups/${groupId}`, { action: "reissue", targetId: luis.memberId, ...rosa });
+const oldPhone = await call(`/api/groups/${groupId}`, { action: "confirm", ...luis });
+check("the admin gives Luis his seat back; his old phone stops working", seat.status === 200 && oldPhone.status === 401, `old secret -> ${oldPhone.status}`);
+
+const l = await call(`/api/groups/${groupId}`, { action: "confirm", memberId: seat.data.memberId, secret: seat.data.secret });
+check("Luis signs from his new phone — it executes", l.status === 200 && l.data.executed === true, `executed ${l.data.executed}`);
 
 g = (await call(`/api/groups/${groupId}`)).data;
 check("the group is settled", g.group.status === "settled");

@@ -28,7 +28,7 @@ works, what is written but never executed, and what has not been started.
 
 | Piece | State |
 |---|---|
-| **Split a bill at the table** — real QR, live, three split modes, everyone confirms | **done**, 23/23 against production |
+| **Split a bill at the table** — real QR, live, three split modes, everyone confirms | **done**, 27/27 against production |
 | The bill buys its settlement plan from the engine over x402 before scheduling | **done — paid on testnet, receipt shown at the table** |
 | Pesos → dollars at today's rate, settled as tUSD (HTS, 1 unit = 1 cent) | **done** — [a $1,500 MXN split, US$88.40 moved](https://hashscan.io/testnet/transaction/0.0.10450391-1789253509-329841529) |
 | Netting engine + exact minimum solver | **done** |

@@ -65,24 +65,55 @@ export default function GroupRoom() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   // ── loading and live updates ────────────────────────────────────────────
+  // Every read is numbered. A slow read that comes back after a newer one is
+  // dropped, and a session is only called stale by a read that STARTED after
+  // the session existed — otherwise a list fetched a moment before someone
+  // joined would say they are not at the table, and throw their seat away.
+  const issued = useRef(0);
+  const applied = useRef(0);
+  const sessionSince = useRef(0);
+  const [listSeq, setListSeq] = useState(0);
+
   const refresh = useCallback(async () => {
+    const mine = ++issued.current;
     try {
       const res = await fetchWithin(`/api/groups/${id}`, { cache: "no-store" }, 15_000);
       const data = (await res.json()) as { group?: Group; members?: Member[]; error?: string };
       if (!res.ok || !data.group) throw new Error(data.error ?? `Error ${res.status}`);
+      if (mine < applied.current) return;
+      applied.current = mine;
       setGroup(data.group);
       setMembers(data.members ?? []);
+      setListSeq(mine);
       setLoadError(null);
     } catch (e) {
       setLoadError(explain(e, t));
     }
   }, [id, t]);
 
+  const adopt = useCallback(
+    (s: GroupSession) => {
+      saveSession(id, s);
+      sessionSince.current = issued.current;
+      setSession(s);
+    },
+    [id],
+  );
+
   useEffect(() => {
-    setSession(loadSession(id));
+    // A seat handed over by the admin arrives in the link's fragment, which
+    // never reaches a server. Take it, then wipe it from the address bar.
+    const m = window.location.hash.match(/seat=([a-z0-9]+)\.([a-f0-9]{64})/);
+    if (m) {
+      adopt({ memberId: m[1], secret: m[2] });
+      history.replaceState(null, "", window.location.pathname);
+    } else {
+      sessionSince.current = issued.current;
+      setSession(loadSession(id));
+    }
     setSessionChecked(true);
     void refresh();
-  }, [id, refresh]);
+  }, [id, refresh, adopt]);
 
   // Realtime for the instant update; a slow poll underneath so the table
   // never goes stale if the socket quietly drops.
@@ -146,13 +177,16 @@ export default function GroupRoom() {
   const me = useMemo(() => members.find((m) => m.id === session?.memberId) ?? null, [members, session]);
 
   // A saved session for a member who is no longer here is stale; drop it so
-  // the join form shows instead of a broken view.
+  // the join form shows instead of a broken view — but only on the word of a
+  // read that began after the session did.
   useEffect(() => {
-    if (session && group && members.length > 0 && !me) {
+    if (session && group && members.length > 0 && !me && listSeq > sessionSince.current) {
       clearSession(id);
       setSession(null);
     }
-  }, [session, group, members, me, id]);
+  }, [session, group, members, me, id, listSeq]);
+
+  const [seat, setSeat] = useState<{ name: string; url: string } | null>(null);
 
   // ── render states ───────────────────────────────────────────────────────
   if (loadError && !group) {
@@ -186,10 +220,9 @@ export default function GroupRoom() {
       <JoinView
         group={group}
         members={members}
-        onJoined={(s) => {
-          saveSession(id, s);
-          setSession(s);
-          void refresh();
+        onJoined={async (s) => {
+          adopt(s);
+          await refresh();
         }}
       />
     );
@@ -256,7 +289,24 @@ export default function GroupRoom() {
 
         {group.status !== "open" && <Settlement group={group} />}
 
-        <MemberList group={group} members={members} meId={me.id} />
+        <MemberList
+          group={group}
+          members={members}
+          meId={me.id}
+          isAdmin={isAdmin}
+          busy={busy}
+          onSeat={async (m) => {
+            const data = (await act("reissue", { targetId: m.id })) as { memberId?: string; secret?: string } | null;
+            if (data?.memberId && data.secret) {
+              setSeat({ name: m.name, url: `${window.location.origin}/g/${group.id}#seat=${data.memberId}.${data.secret}` });
+            }
+          }}
+          onRemove={(m) => {
+            if (window.confirm(t(`Take ${m.name} off the table?`, `¿Quitar a ${m.name} de la mesa?`))) void act("remove", { targetId: m.id });
+          }}
+        />
+
+        <SeatSheet seat={seat} onClose={() => setSeat(null)} />
 
         {group.status === "open" && !isAdmin && (
           <p className="room-note">
@@ -783,7 +833,23 @@ function ConfirmProgress({ done, total }: { done: number; total: number }) {
   );
 }
 
-function MemberList({ group, members, meId }: { group: Group; members: Member[]; meId: string }) {
+function MemberList({
+  group,
+  members,
+  meId,
+  isAdmin,
+  busy,
+  onSeat,
+  onRemove,
+}: {
+  group: Group;
+  members: Member[];
+  meId: string;
+  isAdmin: boolean;
+  busy: string | null;
+  onSeat: (m: Member) => void;
+  onRemove: (m: Member) => void;
+}) {
   const { t } = useLocale();
   const reduce = useReducedMotion();
   const frozen = group.status !== "open";
@@ -844,12 +910,135 @@ function MemberList({ group, members, meId }: { group: Group; members: Member[];
                   ) : null}
                 </span>
               )}
+              {isAdmin && !m.is_admin && group.status !== "settled" && !(group.status === "locked" && m.confirmed) && (
+                <span className="member-tools">
+                  <button
+                    type="button"
+                    className="tool-button"
+                    disabled={busy !== null}
+                    onClick={() => onSeat(m)}
+                    title={t(`Send ${m.name} their seat`, `Mandarle su lugar a ${m.name}`)}
+                    aria-label={t(`Send ${m.name} their seat — if they changed phone or browser`, `Mandarle su lugar a ${m.name} — si cambió de teléfono o navegador`)}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2z" />
+                    </svg>
+                  </button>
+                  {group.status === "open" && (
+                    <button
+                      type="button"
+                      className="tool-button danger"
+                      disabled={busy !== null}
+                      onClick={() => onRemove(m)}
+                      title={t(`Take ${m.name} off the table`, `Quitar a ${m.name} de la mesa`)}
+                      aria-label={t(`Take ${m.name} off the table`, `Quitar a ${m.name} de la mesa`)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                        <path d="M6 6l12 12M18 6L6 18" />
+                      </svg>
+                    </button>
+                  )}
+                </span>
+              )}
             </motion.li>
           );
         })}
         </AnimatePresence>
       </ul>
+      {isAdmin && group.status !== "settled" && members.length > 1 && (
+        <p className="member-help">
+          {t(
+            "Someone lost their seat (new phone, other browser)? Tap the QR next to their name and let them scan it.",
+            "¿Alguien perdió su lugar (otro teléfono u otro navegador)? Toca el QR junto a su nombre y que lo escanee.",
+          )}
+        </p>
+      )}
     </section>
+  );
+}
+
+/** A seat handed back: the QR and link that make someone themselves again. */
+function SeatSheet({ seat, onClose }: { seat: { name: string; url: string } | null; onClose: () => void }) {
+  const { t } = useLocale();
+  const reduce = useReducedMotion();
+  const [qr, setQr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setQr(null);
+    setCopied(false);
+    if (!seat) return;
+    QRCode.toDataURL(seat.url, { margin: 1, width: 360, errorCorrectionLevel: "M", color: { dark: "#1b2430", light: "#ffffff" } })
+      .then(setQr)
+      .catch(() => setQr(null));
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [seat, onClose]);
+
+  return (
+    <AnimatePresence>
+      {seat && (
+        <motion.div
+          className="sheet-scrim"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.12 } }}
+          transition={{ duration: 0.18 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="seat-title"
+            initial={reduce ? false : { opacity: 0, scale: 0.94, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, scale: 0.96, y: 10, transition: { duration: 0.14 } }}
+            transition={{ type: "spring", stiffness: 320, damping: 26 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="label">{t("SEAT", "LUGAR")}</span>
+            <h2 id="seat-title" className="sheet-title">
+              {t(`${seat.name}, scan this`, `${seat.name}, escanea esto`)}
+            </h2>
+            <div className="sheet-qr">
+              {qr ? (
+                // eslint-disable-next-line @next/next/no-img-element -- generated data URL
+                <img src={qr} alt={t(`QR that gives ${seat.name} their seat back`, `QR que le devuelve su lugar a ${seat.name}`)} width={220} height={220} />
+              ) : (
+                <span className="invite-qr-empty">{t("Making the QR…", "Generando el QR…")}</span>
+              )}
+            </div>
+            <p className="sheet-note">
+              {t(
+                "It opens this bill as them, on any phone. Their old link stops working. Only show it to them.",
+                "Abre esta cuenta como esa persona, en cualquier teléfono. Su enlace anterior deja de servir. Enséñaselo solo a ella.",
+              )}
+            </p>
+            <div className="sheet-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(seat.url);
+                    setCopied(true);
+                  } catch {
+                    setCopied(false);
+                  }
+                }}
+              >
+                {copied ? t("Link copied", "Enlace copiado") : t("Copy the link", "Copiar el enlace")}
+              </button>
+              <button type="button" className="btn btn-dark" onClick={onClose} autoFocus>
+                {t("Done", "Listo")}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -860,7 +1049,7 @@ function JoinView({
 }: {
   group: Group;
   members: Member[];
-  onJoined: (s: GroupSession) => void;
+  onJoined: (s: GroupSession) => Promise<void> | void;
 }) {
   const { t } = useLocale();
   const [name, setName] = useState("");
@@ -882,11 +1071,11 @@ function JoinView({
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ action: "join", name }),
         },
-        20_000,
+        45_000,
       );
       const data = (await res.json()) as { memberId?: string; secret?: string; error?: string };
       if (!res.ok || !data.memberId || !data.secret) throw new Error(data.error ?? `Error ${res.status}`);
-      onJoined({ memberId: data.memberId, secret: data.secret });
+      await onJoined({ memberId: data.memberId, secret: data.secret });
     } catch (err) {
       setError(explain(err, t));
       setBusy(false);
@@ -909,8 +1098,19 @@ function JoinView({
           <p className="form-error" role="alert">
             {group.status === "settled"
               ? t("This bill is already settled.", "Esta cuenta ya se liquidó.")
-              : t("Confirmations have started — ask the admin to reopen it to join.", "Ya empezaron las confirmaciones — pide al admin que la reabra para entrar.")}
+              : t("Confirmations have started, so nobody new can join.", "Ya empezaron las confirmaciones, así que ya no puede entrar nadie nuevo.")}
           </p>
+        ) : null}
+
+        {closed ? (
+          group.status === "locked" && (
+            <p className="join-foot">
+              {t(
+                "Already at this table from another phone or browser? Ask the admin to tap the QR next to your name — scanning it gives you your seat back.",
+                "¿Ya estabas en esta mesa desde otro teléfono o navegador? Pide al admin que toque el QR junto a tu nombre — al escanearlo recuperas tu lugar.",
+              )}
+            </p>
+          )
         ) : (
           <>
             <label className="field">
@@ -921,6 +1121,7 @@ function JoinView({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={40}
                 autoComplete="given-name"
+                aria-label={t("Your name", "Tu nombre")}
                 autoFocus
                 required
               />
