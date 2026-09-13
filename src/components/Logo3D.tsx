@@ -108,7 +108,7 @@ export function Logo3D({ alt }: { alt: string }) {
         color: 0xffffff,
         metalness: 0.45,
         roughness: 0.25,
-        emissive: glow,
+        emissive: new THREE.Color("#0c9e60"),
       });
       nodeMat.onBeforeCompile = (shader) => {
         shader.vertexShader = shader.vertexShader
@@ -147,19 +147,26 @@ export function Logo3D({ alt }: { alt: string }) {
 
       const ink = new THREE.Color();
       const nodeBase = new THREE.Color();
+      const beatColor = new THREE.Color("#12b36f"); // deeper than the glow, so the peak reads as green, not mint
       let dark = false;
       const scene = new THREE.Scene();
+      const rim = new THREE.PointLight(0x2fbf84, 18, 10);
       const paint = () => {
         ink.set(readInk());
         dark = document.documentElement.dataset.theme === "dark";
         // On paper: deep slate that still shows its bevel. On a dark ground:
         // a cool pewter, so the green of the beat is what catches the eye.
-        // Dark: gunmetal, so the green of each beat is what catches the eye.
-        face.color.set(dark ? "#4a5a6c" : ink.getHex());
-        side.color.copy(dark ? new THREE.Color("#4a5a6c") : ink).lerp(glow, dark ? 0.45 : 0.45);
-        nodeBase.set(dark ? "#d9e2ea" : ink.getHex());
-        scene.environmentIntensity = dark ? 1 : 0.35;
-        nodeMat.emissiveIntensity = dark ? 2.6 : 1.2;
+        // Dark ground: the network is neutral light steel — no green in it at
+        // all — so it stands clear of the background, and green belongs only
+        // to a vertex that is beating. Paper: slate with green-lit edges.
+        face.color.set(dark ? "#b4c2d0" : ink.getHex());
+        side.color.set(dark ? "#6f8296" : ink.clone().lerp(glow, 0.45).getHex());
+        nodeBase.set(dark ? "#f4f7fa" : ink.getHex());
+        rim.color.set(dark ? "#b9c9dd" : "#2fbf84");
+        rim.intensity = dark ? 10 : 18;
+        scene.environmentIntensity = dark ? 0.9 : 0.35;
+        // Strong enough to glow, not so strong the tone mapping bleaches it to mint.
+        nodeMat.emissiveIntensity = dark ? 1.15 : 0.7;
         haloMat.blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending;
         haloMat.needsUpdate = true;
       };
@@ -207,7 +214,7 @@ export function Logo3D({ alt }: { alt: string }) {
           m.compose(pos, q, scl);
           beads.setMatrixAt(i, m);
           const k = Math.min(1, b);
-          beads.setColorAt(i, tint.copy(nodeBase).lerp(glow, k * 0.85));
+          beads.setColorAt(i, tint.copy(nodeBase).lerp(beatColor, k));
           glowAttr.setX(i, k);
           haloSize.setX(i, p.r * (dark ? 5.5 + 5 * k : 4 + 3.5 * k));
           haloAlpha.setX(i, dark ? 0.06 + 0.9 * k : 0.03 + 0.45 * k);
@@ -227,7 +234,6 @@ export function Logo3D({ alt }: { alt: string }) {
       const key = new THREE.DirectionalLight(0xffffff, 2.4);
       key.position.set(2.5, 3, 4);
       scene.add(key);
-      const rim = new THREE.PointLight(0x2fbf84, 18, 10);
       rim.position.set(-2.4, -1.2, 1.6);
       scene.add(rim);
 
