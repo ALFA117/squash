@@ -8,6 +8,7 @@ import { pool, poolSize } from "./pool";
 import { scheduleSettlement, scheduleStatus, settlementToken, signSchedule } from "./scheduled";
 import { checkShares, equalShares, transfersToPayer, type SplitMode } from "./split";
 import { serverClient } from "./supabase";
+import { seatAction, verifyHuman, worldConfigured } from "./world";
 
 /**
  * A group splitting one bill — server side only.
@@ -48,6 +49,8 @@ export interface GroupRow {
   payout_evm: string | null;
   /** The Hedera account behind that wallet. */
   payout_account: string | null;
+  /** World ID: every seat must be a verified, unique person. */
+  require_human: boolean;
   created_at: string;
 }
 
@@ -61,6 +64,8 @@ export interface MemberRow {
   settle_usd_cents: number | null;
   confirmed: boolean;
   account_index: number;
+  /** Passed World ID Selfie Check for this bill. The nullifier itself is server-only. */
+  human_verified: boolean;
   joined_at: string;
 }
 
@@ -106,10 +111,17 @@ function cleanName(input: unknown, max: number): string {
  * a commit), and if it still fails, remove the member so nobody is left
  * holding a session that can never work.
  */
-async function storeSecret(memberId: string, secret: string, rollback: () => Promise<void>) {
+async function storeSecret(
+  memberId: string,
+  secret: string,
+  rollback: () => Promise<void>,
+  humanNullifier: string | null = null,
+) {
   const db = serverClient();
   for (let attempt = 0; attempt < 3; attempt++) {
-    const { error } = await db.from("member_secrets").insert({ member_id: memberId, secret_hash: hashSecret(secret) });
+    const { error } = await db
+      .from("member_secrets")
+      .insert({ member_id: memberId, secret_hash: hashSecret(secret), human_nullifier: humanNullifier });
     if (!error || error.code === "23505") return;
     await new Promise((r) => setTimeout(r, 350 * (attempt + 1)));
   }
@@ -236,9 +248,34 @@ export async function createGroup(input: {
   return { groupId, memberId, secret };
 }
 
-export async function joinGroup(groupId: string, rawName: unknown) {
+/** Who already holds this person's seat, if anyone. */
+async function seatOfHuman(nullifier: string): Promise<string | null> {
+  const { data } = await serverClient()
+    .from("member_secrets")
+    .select("member_id")
+    .eq("human_nullifier", nullifier)
+    .maybeSingle();
+  return (data?.member_id as string | undefined) ?? null;
+}
+
+export async function joinGroup(groupId: string, rawName: unknown, proof?: unknown) {
   const name = cleanName(rawName, 40);
   const db = serverClient();
+
+  // A table of verified people: one live human, one seat.
+  let nullifier: string | null = null;
+  const first = await getGroup(groupId);
+  if (first.group.require_human) {
+    if (!proof) throw new GroupError("This table is for verified people — verify with World ID to join", 403);
+    try {
+      nullifier = await verifyHuman(proof, seatAction(groupId));
+    } catch (e) {
+      throw new GroupError(`World ID: ${(e as Error).message}`, 403);
+    }
+    if (await seatOfHuman(nullifier)) {
+      throw new GroupError("You already have a seat at this table — use \"Get my seat back\" instead", 409);
+    }
+  }
 
   // Two people can scan the same QR at the same moment and race for a slot.
   // The unique (group_id, account_index) constraint catches it; try again.
@@ -265,6 +302,7 @@ export async function joinGroup(groupId: string, rawName: unknown) {
       is_admin: false,
       share_cents: null,
       account_index: slot,
+      human_verified: nullifier !== null,
     });
 
     if (error) {
@@ -272,9 +310,14 @@ export async function joinGroup(groupId: string, rawName: unknown) {
       throw new GroupError(error.message, 502);
     }
 
-    await storeSecret(memberId, secret, async () => {
-      await db.from("members").delete().eq("id", memberId);
-    });
+    await storeSecret(
+      memberId,
+      secret,
+      async () => {
+        await db.from("members").delete().eq("id", memberId);
+      },
+      nullifier,
+    );
 
     // In an equal split a new arrival changes everyone's share.
     if (group.split_mode === "equal") {
@@ -375,6 +418,12 @@ export async function lockGroup(
   assertOpen(group);
 
   if (members.length < 2) throw new GroupError("Invite at least one person before asking for confirmations");
+  if (group.require_human) {
+    const unverified = members.filter((m) => !m.human_verified).map((m) => m.name);
+    if (unverified.length) {
+      throw new GroupError(`This table is for verified people — still to verify: ${unverified.join(", ")}`);
+    }
+  }
 
   const check = checkShares(group.total_cents, members);
   if (!check.complete) throw new GroupError("Not everyone's share has been decided yet");
@@ -532,6 +581,61 @@ export async function setPayoutWallet(groupId: string, memberId: string, secret:
     .eq("id", groupId);
   if (error) throw new GroupError(error.message, 502);
   return { account };
+}
+
+/** The admin turns "verified people only" on or off, while the bill is open. */
+export async function setRequireHuman(groupId: string, memberId: string, secret: string, on: unknown) {
+  await authenticateAdmin(groupId, memberId, secret);
+  const { group } = await getGroup(groupId);
+  assertOpen(group);
+  if (on === true && !worldConfigured()) throw new GroupError("World ID is not configured on this server", 503);
+  const { error } = await serverClient().from("groups").update({ require_human: on === true }).eq("id", groupId);
+  if (error) throw new GroupError(error.message, 502);
+}
+
+/** Someone already at the table proves they are a real, unique person. */
+export async function verifySeat(groupId: string, memberId: string, secret: string, proof: unknown) {
+  const me = await authenticate(groupId, memberId, secret);
+  let nullifier: string;
+  try {
+    nullifier = await verifyHuman(proof, seatAction(groupId));
+  } catch (e) {
+    throw new GroupError(`World ID: ${(e as Error).message}`, 403);
+  }
+  const holder = await seatOfHuman(nullifier);
+  if (holder && holder !== me.id) throw new GroupError("This person already holds another seat at this table", 409);
+
+  const db = serverClient();
+  const { error } = await db.from("member_secrets").update({ human_nullifier: nullifier }).eq("member_id", me.id);
+  if (error) throw new GroupError(error.message, 502);
+  const { error: e } = await db.from("members").update({ human_verified: true }).eq("id", me.id);
+  if (e) throw new GroupError(e.message, 502);
+}
+
+/**
+ * Get a lost seat back by being the same person: Selfie Check again, same
+ * nullifier for this table, same seat. No admin, no link.
+ */
+export async function recoverSeat(groupId: string, proof: unknown) {
+  const { group, members } = await getGroup(groupId);
+  if (group.status === "settled") throw new GroupError("This bill is already settled", 409);
+  let nullifier: string;
+  try {
+    nullifier = await verifyHuman(proof, seatAction(groupId));
+  } catch (e) {
+    throw new GroupError(`World ID: ${(e as Error).message}`, 403);
+  }
+  const holder = await seatOfHuman(nullifier);
+  const member = members.find((m) => m.id === holder);
+  if (!member) throw new GroupError("No seat at this table belongs to this person yet", 404);
+
+  const secret = randomBytes(32).toString("hex");
+  const { error } = await serverClient()
+    .from("member_secrets")
+    .update({ secret_hash: hashSecret(secret) })
+    .eq("member_id", member.id);
+  if (error) throw new GroupError(error.message, 502);
+  return { memberId: member.id, secret };
 }
 
 /**

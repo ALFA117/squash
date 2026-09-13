@@ -19,6 +19,10 @@ import { useUsdRate } from "@/lib/useUsdRate";
 
 const SPRING = { type: "spring", stiffness: 380, damping: 30 } as const;
 
+// World ID loads only where a World button is on screen, and only if configured.
+const WorldButton = dynamic(() => import("@/components/WorldButton"), { ssr: false });
+const WORLD_ON = Boolean(process.env.NEXT_PUBLIC_WORLD_APP_ID);
+
 // Privy loads only when the payer opens their wallet — never on anyone else's path.
 const PayoutWallet = dynamic(() => import("@/components/PayoutWallet"), {
   ssr: false,
@@ -41,6 +45,7 @@ interface Group {
   settle_token: string | null;
   payout_evm: string | null;
   payout_account: string | null;
+  require_human: boolean;
 }
 
 interface Member {
@@ -51,6 +56,7 @@ interface Member {
   settle_usd_cents: number | null;
   confirmed: boolean;
   account_index: number;
+  human_verified: boolean;
 }
 
 /**
@@ -229,6 +235,10 @@ export default function GroupRoom() {
       <JoinView
         group={group}
         members={members}
+        onRecovered={async (s) => {
+          adopt(s);
+          await refresh();
+        }}
         onJoined={async (s) => {
           adopt(s);
           await refresh();
@@ -276,6 +286,28 @@ export default function GroupRoom() {
         {group.status === "settled" && <SettledBanner />}
 
         {group.status === "open" && isAdmin && <InviteCard groupId={group.id} count={members.length} />}
+
+        {WORLD_ON && group.status === "open" && isAdmin && (
+          <HumanToggle on={group.require_human} busy={busy !== null} onChange={(on) => act("require-human", { on })} />
+        )}
+
+        {WORLD_ON && !me.human_verified && group.status !== "settled" && (
+          <section className="world-card">
+            <span className="label">{t("REAL PERSON · WORLD ID", "PERSONA REAL · WORLD ID")}</span>
+            <p className="wallet-note">
+              {group.require_human
+                ? t("This table is for verified people. A quick selfie check proves you are a real, unique person — World never shows us your face.", "Esta mesa es solo para personas verificadas. Una selfie rápida prueba que eres una persona real y única — World nunca nos muestra tu cara.")
+                : t("Optional: prove you are a real person with a quick selfie check. If you ever lose this phone, the same check gets your seat back.", "Opcional: prueba que eres una persona real con una selfie rápida. Si pierdes este teléfono, la misma verificación te devuelve tu lugar.")}
+            </p>
+            <WorldButton
+              groupId={group.id}
+              label={t("Verify with World ID", "Verificar con World ID")}
+              onProof={async (proof) => {
+                if ((await act("verify-human", { proof })) === null) throw new Error("rejected");
+              }}
+            />
+          </section>
+        )}
 
         {group.status === "open" && isAdmin && (
           <SplitControls
@@ -952,6 +984,11 @@ function MemberList({
                 <span className="member-name">
                   {m.name}
                   {m.id === meId ? ` (${t("you", "tú")})` : ""}
+                  {m.human_verified && (
+                    <span className="human-badge" title={t("Verified real person (World ID)", "Persona real verificada (World ID)")}>
+                      ✓ {t("verified", "verificado")}
+                    </span>
+                  )}
                 </span>
                 <span className="member-role">
                   {isPayer
@@ -1026,6 +1063,25 @@ function MemberList({
         </p>
       )}
     </section>
+  );
+}
+
+/** "Verified people only": one live human per seat, one seat per human. */
+function HumanToggle({ on, busy, onChange }: { on: boolean; busy: boolean; onChange: (on: boolean) => void }) {
+  const { t } = useLocale();
+  return (
+    <label className="human-toggle">
+      <span className="grow">
+        <strong>{t("Verified people only", "Solo personas verificadas")}</strong>
+        <small>
+          {t(
+            "Everyone passes World ID Selfie Check to take a seat — no fake guests, no one person holding two seats.",
+            "Cada quien pasa Selfie Check de World ID para entrar — sin invitados falsos ni una persona con dos lugares.",
+          )}
+        </small>
+      </span>
+      <input type="checkbox" role="switch" checked={on} disabled={busy} onChange={(e) => onChange(e.target.checked)} />
+    </label>
   );
 }
 
@@ -1118,10 +1174,12 @@ function JoinView({
   group,
   members,
   onJoined,
+  onRecovered,
 }: {
   group: Group;
   members: Member[];
   onJoined: (s: GroupSession) => Promise<void> | void;
+  onRecovered: (s: GroupSession) => Promise<void> | void;
 }) {
   const { t } = useLocale();
   const [name, setName] = useState("");
@@ -1132,6 +1190,11 @@ function JoinView({
 
   async function join(e: React.FormEvent) {
     e.preventDefault();
+    if (group.require_human) return; // the World button joins, with its proof
+    await joinWith();
+  }
+
+  async function joinWith(proof?: unknown) {
     if (!name.trim() || busy) return;
     setBusy(true);
     setError(null);
@@ -1141,7 +1204,7 @@ function JoinView({
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action: "join", name }),
+          body: JSON.stringify({ action: "join", name, proof }),
         },
         45_000,
       );
@@ -1203,9 +1266,23 @@ function JoinView({
                 {error}
               </p>
             )}
-            <PressButton type="submit" className="btn btn-dark" disabled={!name.trim() || busy}>
-              {busy ? <Busy>{t("Joining…", "Entrando…")}</Busy> : t("Join the table", "Entrar a la mesa")}
-            </PressButton>
+            {group.require_human ? (
+              WORLD_ON && (
+                <WorldButton
+                  groupId={group.id}
+                  className="btn btn-dark"
+                  disabled={!name.trim() || busy}
+                  label={t("Verify with World ID and join", "Verificar con World ID y entrar")}
+                  onProof={async (proof) => {
+                    await joinWith(proof);
+                  }}
+                />
+              )
+            ) : (
+              <PressButton type="submit" className="btn btn-dark" disabled={!name.trim() || busy}>
+                {busy ? <Busy>{t("Joining…", "Entrando…")}</Busy> : t("Join the table", "Entrar a la mesa")}
+              </PressButton>
+            )}
             <p className="join-foot">
               {t(
                 "You will see your share and confirm it. Nobody pays until everyone agrees.",
@@ -1213,6 +1290,30 @@ function JoinView({
               )}
             </p>
           </>
+        )}
+        {WORLD_ON && group.status !== "settled" && (
+          <div className="world-recover">
+            <span className="join-foot">
+              {t("Already had a seat and verified it with World?", "¿Ya tenías lugar y lo verificaste con World?")}
+            </span>
+            <WorldButton
+              groupId={group.id}
+              label={t("Get my seat back with World ID", "Recuperar mi lugar con World ID")}
+              onProof={async (proof) => {
+                const res = await fetchWithin(
+                  `/api/groups/${group.id}`,
+                  { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "recover-human", proof }) },
+                  30_000,
+                );
+                const data = (await res.json()) as { memberId?: string; secret?: string; error?: string };
+                if (!res.ok || !data.memberId || !data.secret) {
+                  setError(data.error ?? `Error ${res.status}`);
+                  throw new Error(data.error ?? "rejected");
+                }
+                await onRecovered({ memberId: data.memberId, secret: data.secret });
+              }}
+            />
+          </div>
         )}
       </form>
     </main>

@@ -7,7 +7,10 @@ import {
   lockGroup,
   reissueSeat,
   removeMember,
+  recoverSeat,
   setPayoutWallet,
+  setRequireHuman,
+  verifySeat,
   reopenGroup,
   setOwnShare,
   setShareByAdmin,
@@ -54,7 +57,15 @@ export async function POST(request: Request, { params }: Ctx) {
   try {
     switch (body.action) {
       case "join":
-        return NextResponse.json(await joinGroup(id, body.name), { status: 201 });
+        return NextResponse.json(await joinGroup(id, body.name, body.proof), { status: 201 });
+      case "require-human":
+        await setRequireHuman(id, memberId, secret, body.on);
+        return NextResponse.json({ ok: true });
+      case "verify-human":
+        await verifySeat(id, memberId, secret, body.proof);
+        return NextResponse.json({ ok: true });
+      case "recover-human":
+        return NextResponse.json(await recoverSeat(id, body.proof));
       case "mode":
         await setSplitMode(id, memberId, secret, body.mode);
         return NextResponse.json({ ok: true });

@@ -109,8 +109,14 @@ This is a hackathon build on testnet, and it is **custodial**:
 - **Agent account** (`AGENT_*`): the customer that pays the engine over x402. It
   is deliberately a different account; the facilitator refuses a payment to
   yourself.
-- **No sign-in.** Privy was removed: its login stalled the demo, and a Privy
-  wallet is an Ethereum key that cannot sign for a Hedera account anyway.
+- **Payer's own wallet (Privy, optional):** the payer can sign in with email
+  and be paid into a Privy embedded wallet. Its EVM address is a Hedera account
+  alias; the treasury seeds it (HBAR + tUSD association) and the schedule
+  credits it directly. The wallet sends on through Hedera's EVM relay. Privy
+  loads only when the payer opens that card.
+- **World ID (optional):** "verified people only" tables and seat recovery via
+  Selfie Check; the nullifier (scoped to the bill) lives next to the seat's
+  secret in a server-only table.
 
 What changes for production is only who signs the `ScheduleSign` step: each
 person would sign `ScheduleSign` from their own Hedera wallet (HashPack or

@@ -38,8 +38,32 @@ works, what is written but never executed, and what has not been started.
 | HCS proof-of-run audit trail | **done — published on testnet** |
 | Scheduled Transaction atomic settlement | **done — executes on the last signature** |
 | Tests | **47** — solver, split rules, currency conversion, input validation |
-| Privy | removed — it stalled the demo and signed nothing on Hedera |
-| World Selfie Check | not attempted |
+| Privy — the payer is paid into their own embedded wallet, and can send it on | **done** — chain side proven by `scripts/test-payout.mjs` |
+| World Selfie Check — one human per seat, seat recovery | **built**, turns on with World credentials ([feedback](docs/WORLD_FEEDBACK.md)) |
+
+---
+
+## Sponsor tracks
+
+### Hedera — AI & Agentic Payments (x402)
+- **Live x402-gated service:** `POST /api/v1/net`, priced per obligation, settled through Blocky402 (fee sponsored).
+- **Platform that consumes it:** every bill buys its settlement plan from the engine before scheduling; the receipt is shown at the table.
+- Extra points covered: metering per obligation, **HTS token** (tUSD) in the settlement path, **HCS** audit trail of every run, **Scheduled Transactions** for atomic settlement.
+- Proof: `node scripts/test-dinner.mjs https://squash-pay.vercel.app` (27 checks), links in [SUBMISSION.md](SUBMISSION.md).
+
+### Privy — Best financial flow
+- **The flow:** whoever paid the bill signs in with an email or Google; Privy creates an **embedded wallet** (a key the app never sees). The bill then **settles into that wallet** instead of a test account the app holds, and from the same card the money can be **sent on**, signed by the Privy wallet and submitted through Hedera's EVM relay as an ERC-20 transfer of tUSD.
+- **Why it matters:** the person who is owed money ends up holding it themselves, with no seed phrase, no chain, no gas in sight — just "Get paid in my wallet".
+- Code: `src/components/PayoutWallet.tsx` (PrivyProvider with Hedera testnet, `useWallets`, `useSendTransaction`), `src/lib/payout.ts` (wallet address → Hedera account, token association), `setPayoutWallet` in `src/lib/groups.ts`.
+- Proof: `node scripts/test-payout.mjs https://squash-pay.vercel.app` — a secp256k1 wallet (the same kind as Privy's, over the same relay) becomes a Hedera account, receives the settlement, and sends US$1.00 on.
+- Privy loads only when the payer opens the card, so it can never stall the rest of the app.
+
+### World — Selfie Check
+- **Fairness:** "Verified people only" — one live human per seat, one seat per human per bill (nullifier scoped to the bill).
+- **Eligibility:** confirmations cannot start until every seat is verified.
+- **Continuity:** lost your phone? Pass Selfie Check again → same nullifier → your seat back, no admin needed.
+- Code: `src/lib/world.ts`, `src/components/WorldButton.tsx`, `src/app/api/world/context/route.ts`. Feedback: [docs/WORLD_FEEDBACK.md](docs/WORLD_FEEDBACK.md).
+- Turns on when `NEXT_PUBLIC_WORLD_APP_ID`, `WORLD_RP_ID`, `WORLD_RP_SIGNING_KEY` are set (and `NEXT_PUBLIC_WORLD_ENV=sandbox` for sandbox proofs).
 
 ---
 

@@ -79,6 +79,28 @@ A single restaurant bill has one creditor, so there is nothing to compress —
 we say so in the product rather than pretend. The trip is where the engine
 earns its keep.
 
+## Privy — getting paid into your own wallet
+
+The person who fronted the bill taps **"Get paid in my wallet"**, signs in with
+an email or Google, and Privy creates an embedded wallet — a key the app never
+sees. On Hedera that wallet's address is an account: the treasury seeds it with
+a little HBAR and associates tUSD, and the bill's scheduled settlement credits it
+directly. From the same card the money can be sent on, signed by the Privy
+wallet and submitted through Hedera's EVM relay as an ERC-20 transfer. No seed
+phrase, no chain names, no gas — "get paid" and "send".
+
+Chain side proven end to end by `scripts/test-payout.mjs` (a secp256k1 wallet,
+the same kind as Privy's, over the same relay): wallet → Hedera account →
+settlement lands in it → US$1.00 sent on → balance moves.
+
+## World ID — one real person, one seat
+
+A table can switch on **"Verified people only"**: every seat passes Selfie
+Check, and the nullifier — scoped to the bill — makes a second seat for the same
+person impossible. Confirmations cannot start until every seat is verified. And
+if someone loses their phone, passing Selfie Check again gives them their seat
+back. Feedback on the integration: [docs/WORLD_FEEDBACK.md](docs/WORLD_FEEDBACK.md).
+
 ## Security
 
 - **Anyone with the link can read a group; only the server can write.**
@@ -95,8 +117,9 @@ earns its keep.
 - The people at the table settle through **testnet accounts the app holds**,
   so it can sign when each person taps "yes". A production version gives each
   person their own wallet and never sees the key.
-- **No sign-in.** An earlier version put a Privy login in front of the sample
-  trip; it stalled the demo and signed nothing on Hedera, so it was removed.
+- **Sign-in is optional and never in the way.** Nobody logs in to split a bill.
+  Privy appears only for the payer who wants to be paid into their own wallet,
+  and World ID only when a table asks for verified people.
 - The dollars are **tUSD, a test token we issued** (worth nothing, and its memo
   says so). The exchange rate is real. On mainnet the token would be USDC.
 - Everything runs on **Hedera testnet**. The build cost nothing.
@@ -117,4 +140,4 @@ earns its keep.
 ## Stack
 
 Next.js 16 · React 19 · TypeScript · Supabase (Postgres + Realtime, RLS) ·
-`@hashgraph/sdk` · HTS (tUSD) · `@x402/hedera` · Motion · three.js · Vercel · Hedera testnet.
+`@hashgraph/sdk` · HTS (tUSD) · `@x402/hedera` · Privy (embedded wallets) · World ID (IDKit, Selfie Check) · Motion · three.js · Vercel · Hedera testnet.
