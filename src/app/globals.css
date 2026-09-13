@@ -1757,8 +1757,18 @@ a[class*="avatar"] {
   gap: 8px;
 }
 
+.own-share-row {
+  align-items: stretch;
+}
+
 .own-share-row .money-input {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0; /* let the field give way; the button must never be pushed out */
+}
+
+.own-share-row .btn-inline {
+  flex: 0 0 auto;
+  padding: 0 18px;
 }
 
 .btn-inline {
@@ -2526,4 +2536,12 @@ a[class*="avatar"] {
 .sheet-actions .btn {
   height: 48px;
   font-size: 14.5px;
+}
+
+/* On a phone the theme and language switches float over the header; give
+   them their own strip so they never cover a title or a status chip. */
+@media (max-width: 560px) {
+  .phone {
+    padding-top: 56px;
+  }
 }

@@ -280,7 +280,7 @@ export default function GroupRoom() {
         )}
 
         {group.status === "open" && group.split_mode === "own" && (
-          <OwnShareInput me={me} busy={busy === "own-share"} onSave={(cents) => act("own-share", { cents })} />
+          <OwnShareInput me={me} busy={busy === "own-share"} currency={group.currency} onSave={(cents) => act("own-share", { cents })} />
         )}
 
         {group.status === "locked" && (
@@ -766,7 +766,17 @@ function CustomShareRow({
   );
 }
 
-function OwnShareInput({ me, busy, onSave }: { me: Member; busy: boolean; onSave: (cents: number) => void }) {
+function OwnShareInput({
+  me,
+  busy,
+  currency,
+  onSave,
+}: {
+  me: Member;
+  busy: boolean;
+  currency: Currency;
+  onSave: (cents: number) => void;
+}) {
   const { t } = useLocale();
   const [draft, setDraft] = useState(me.share_cents === null ? "" : (me.share_cents / 100).toFixed(2));
   const cents = parseMoney(draft);
@@ -790,6 +800,7 @@ function OwnShareInput({ me, busy, onSave }: { me: Member; busy: boolean; onSave
             placeholder="0.00"
             aria-label={t("What you had", "Lo que consumiste")}
           />
+          <span className="money-unit">{currency}</span>
         </span>
         <PressButton type="submit" className="btn btn-dark btn-inline" disabled={cents === null || busy}>
           {busy ? t("Saving…", "Guardando…") : t("Save", "Guardar")}
