@@ -63,6 +63,15 @@ Packages: `@worldcoin/idkit@4.2.3`, `@worldcoin/idkit-server@1.1.1`.
 
 ## 2. Developer Portal: navigation, search, discovery, debugging
 
+- **Registering the relying party was the first wall.** The Portal showed the
+  App ID and RP ID, but the "Register relying party" step (signer address)
+  did not complete for us in the browser, and nothing on the page said why.
+  Reading the Portal's open-source code showed the dialog offers "Generate new
+  key" or "Use existing key"; we generated a secp256k1 key on our server and
+  registered only its address. The docs never say that the signer is a plain
+  Ethereum key you can generate yourself, or that `signRequest` signs with it
+  EIP-191 style — both would have unblocked us in minutes.
+
 - The docs explain *that* an RP ID and a signing key exist, but not *where*
   in the Portal to find them or whether an **action must be pre-registered**
   for 4.0 uniqueness proofs (in 3.0 it had to be). We scope actions per bill
@@ -107,8 +116,11 @@ Packages: `@worldcoin/idkit@4.2.3`, `@worldcoin/idkit-server@1.1.1`.
 
 ## Status at submission
 
-- Integration complete and deployed, off by default: it turns on when
-  `NEXT_PUBLIC_WORLD_APP_ID`, `WORLD_RP_ID` and `WORLD_RP_SIGNING_KEY` are set.
-- RP request signing verified locally (65-byte signature, 32-byte nonce, TTL).
-- A live Selfie Check proof depends on sandbox access, requested through the
-  form linked from the prize page.
+- Integration complete and **live in production** with our App ID and RP ID:
+  the server signs each request, and the IDKit widget opens with the World App
+  QR ("Connect your World ID").
+- RP request signing verified (65-byte signature, 32-byte nonce, TTL 300 s).
+- A completed proof depends on (1) the signer address being registered for the
+  RP and (2) Selfie Check being enabled for the app. We could not install the
+  sandbox World ID app, so `NEXT_PUBLIC_WORLD_CREDENTIAL=device` switches the
+  same flow to World ID's device credential, available in the regular World App.
