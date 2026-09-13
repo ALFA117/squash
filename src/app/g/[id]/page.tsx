@@ -22,6 +22,8 @@ const SPRING = { type: "spring", stiffness: 380, damping: 30 } as const;
 // World ID loads only where a World button is on screen, and only if configured.
 const WorldButton = dynamic(() => import("@/components/WorldButton"), { ssr: false });
 const WORLD_ON = Boolean(process.env.NEXT_PUBLIC_WORLD_APP_ID);
+// Which World ID credential is asked for: Selfie Check, or the device credential.
+const WORLD_SELFIE = process.env.NEXT_PUBLIC_WORLD_CREDENTIAL !== "device";
 
 // Privy loads only when the payer opens their wallet — never on anyone else's path.
 const PayoutWallet = dynamic(() => import("@/components/PayoutWallet"), {
@@ -296,8 +298,12 @@ export default function GroupRoom() {
             <span className="label">{t("REAL PERSON · WORLD ID", "PERSONA REAL · WORLD ID")}</span>
             <p className="wallet-note">
               {group.require_human
-                ? t("This table is for verified people. A quick selfie check proves you are a real, unique person — World never shows us your face.", "Esta mesa es solo para personas verificadas. Una selfie rápida prueba que eres una persona real y única — World nunca nos muestra tu cara.")
-                : t("Optional: prove you are a real person with a quick selfie check. If you ever lose this phone, the same check gets your seat back.", "Opcional: prueba que eres una persona real con una selfie rápida. Si pierdes este teléfono, la misma verificación te devuelve tu lugar.")}
+                ? WORLD_SELFIE
+                  ? t("This table is for verified people. A quick selfie check proves you are a real, unique person — World never shows us your face.", "Esta mesa es solo para personas verificadas. Una selfie rápida prueba que eres una persona real y única — World nunca nos muestra tu cara.")
+                  : t("This table is for verified people. Verify with World App that you are a real, unique person — World never tells us who you are.", "Esta mesa es solo para personas verificadas. Verifica con World App que eres una persona real y única — World nunca nos dice quién eres.")
+                : WORLD_SELFIE
+                  ? t("Optional: prove you are a real person with a quick selfie check. If you ever lose this phone, the same check gets your seat back.", "Opcional: prueba que eres una persona real con una selfie rápida. Si pierdes este teléfono, la misma verificación te devuelve tu lugar.")
+                  : t("Optional: prove you are a real person with World App. If you ever lose this phone, verifying again gets your seat back.", "Opcional: prueba con World App que eres una persona real. Si pierdes este teléfono, verificarte de nuevo te devuelve tu lugar.")}
             </p>
             <WorldButton
               groupId={group.id}
@@ -1074,10 +1080,15 @@ function HumanToggle({ on, busy, onChange }: { on: boolean; busy: boolean; onCha
       <span className="grow">
         <strong>{t("Verified people only", "Solo personas verificadas")}</strong>
         <small>
-          {t(
-            "Everyone passes World ID Selfie Check to take a seat — no fake guests, no one person holding two seats.",
-            "Cada quien pasa Selfie Check de World ID para entrar — sin invitados falsos ni una persona con dos lugares.",
-          )}
+          {WORLD_SELFIE
+            ? t(
+                "Everyone passes World ID Selfie Check to take a seat — no fake guests, no one person holding two seats.",
+                "Cada quien pasa Selfie Check de World ID para entrar — sin invitados falsos ni una persona con dos lugares.",
+              )
+            : t(
+                "Everyone verifies with World ID to take a seat — no fake guests, no one person holding two seats.",
+                "Cada quien se verifica con World ID para entrar — sin invitados falsos ni una persona con dos lugares.",
+              )}
         </small>
       </span>
       <input type="checkbox" role="switch" checked={on} disabled={busy} onChange={(e) => onChange(e.target.checked)} />
