@@ -18,12 +18,28 @@
  *
  * Off unless the Developer Portal credentials are set.
  */
+import { createHash } from "node:crypto";
 import { signRequest } from "@worldcoin/idkit-server";
 
 const VERIFY = "https://developer.world.org/api/v4/verify";
 
+/**
+ * Demo mode: while World has not enabled Selfie Check for this app, the World
+ * App step is SIMULATED on screen (clearly labelled "demo") and accepted here
+ * only when WORLD_DEMO=1. Everything around it — one seat per person per
+ * table, "verified people only", getting a seat back — runs for real on the
+ * simulated identity. A simulated nullifier is prefixed "demo:" so it can
+ * never be mistaken for, or collide with, a real one.
+ */
+export function worldDemo(): boolean {
+  return process.env.WORLD_DEMO === "1";
+}
+
 export function worldConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_WORLD_APP_ID && process.env.WORLD_RP_ID && process.env.WORLD_RP_SIGNING_KEY);
+  return (
+    worldDemo() ||
+    Boolean(process.env.NEXT_PUBLIC_WORLD_APP_ID && process.env.WORLD_RP_ID && process.env.WORLD_RP_SIGNING_KEY)
+  );
 }
 
 /** One action per bill: one nullifier per person per table. */
@@ -51,6 +67,16 @@ export function rpContext(action: string) {
 export async function verifyHuman(result: unknown, action: string): Promise<string> {
   if (!worldConfigured()) throw new Error("World ID is not configured");
   if (!result || typeof result !== "object") throw new Error("Missing World ID proof");
+
+  const demo = result as { demo?: unknown; subject?: unknown };
+  if (demo.demo === true) {
+    if (!worldDemo()) throw new Error("Simulated proofs are not accepted on this server");
+    if (typeof demo.subject !== "string" || !/^[a-f0-9]{64}$/.test(demo.subject)) {
+      throw new Error("Malformed simulated proof");
+    }
+    // Same simulated person + same table → same nullifier, like the real thing.
+    return "demo:" + createHash("sha256").update(`${demo.subject}:${action}`).digest("hex");
+  }
 
   const res = await fetch(`${VERIFY}/${process.env.WORLD_RP_ID}`, {
     method: "POST",

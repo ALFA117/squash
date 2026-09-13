@@ -2689,3 +2689,96 @@ a[class*="avatar"] {
   accent-color: var(--settled);
   cursor: pointer;
 }
+
+/* ── World App simulation (demo) ────────────────────────────────────────── */
+
+.demo-tag {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #8a5a00;
+  background: #ffe9b8;
+  border: 1px solid #f0c96a;
+  white-space: nowrap;
+}
+
+.demo-tag.inline {
+  margin-left: 8px;
+}
+
+.world-sim-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.world-sim-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.world-sim-frame {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  border: 3px solid var(--rule);
+  color: var(--muted);
+}
+
+.world-sim-frame video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  opacity: 0;
+}
+
+.world-sim-frame video.on {
+  opacity: 1;
+}
+
+.world-sim-frame.done {
+  border-color: var(--settled);
+}
+
+.world-sim-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  border-top-color: var(--settled);
+  border-right-color: var(--settled);
+  animation: spin 900ms linear infinite;
+}
+
+.world-sim-ok {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--settled) 70%, transparent);
+  color: #fff;
+}
+
+:root[data-theme="dark"] .demo-tag {
+  color: #ffd27a;
+  background: rgba(255, 190, 60, 0.12);
+  border-color: rgba(255, 190, 60, 0.4);
+}

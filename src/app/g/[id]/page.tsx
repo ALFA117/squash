@@ -24,6 +24,8 @@ const WorldButton = dynamic(() => import("@/components/WorldButton"), { ssr: fal
 const WORLD_ON = Boolean(process.env.NEXT_PUBLIC_WORLD_APP_ID);
 // Which World ID credential is asked for: Selfie Check, or the device credential.
 const WORLD_SELFIE = process.env.NEXT_PUBLIC_WORLD_CREDENTIAL !== "device";
+// Demo mode: the World App step is simulated and every label says so.
+const WORLD_DEMO = process.env.NEXT_PUBLIC_WORLD_DEMO === "1";
 
 // Privy loads only when the payer opens their wallet — never on anyone else's path.
 const PayoutWallet = dynamic(() => import("@/components/PayoutWallet"), {
@@ -295,7 +297,10 @@ export default function GroupRoom() {
 
         {WORLD_ON && !me.human_verified && group.status !== "settled" && (
           <section className="world-card">
-            <span className="label">{t("REAL PERSON · WORLD ID", "PERSONA REAL · WORLD ID")}</span>
+            <span className="label">
+              {t("REAL PERSON · WORLD ID", "PERSONA REAL · WORLD ID")}
+              {WORLD_DEMO && <span className="demo-tag inline">{t("DEMO", "DEMO")}</span>}
+            </span>
             <p className="wallet-note">
               {group.require_human
                 ? WORLD_SELFIE
@@ -993,6 +998,7 @@ function MemberList({
                   {m.human_verified && (
                     <span className="human-badge" title={t("Verified real person (World ID)", "Persona real verificada (World ID)")}>
                       ✓ {t("verified", "verificado")}
+                      {WORLD_DEMO ? " · demo" : ""}
                     </span>
                   )}
                 </span>

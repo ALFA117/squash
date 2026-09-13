@@ -3,6 +3,10 @@
 import { deviceLegacy, IDKitRequestWidget, selfieCheckLegacy, type IDKitResult, type RpContext } from "@worldcoin/idkit";
 import { useState } from "react";
 import { useLocale } from "./Locale";
+import WorldEmulator from "./WorldEmulator";
+
+// Demo mode: the World App step is simulated on screen, labelled as such.
+const DEMO = process.env.NEXT_PUBLIC_WORLD_DEMO === "1";
 
 /**
  * One button that runs World ID Selfie Check for this table's seat.
@@ -36,6 +40,10 @@ export default function WorldButton({
 
   async function start() {
     setError(null);
+    if (DEMO) {
+      setOpen(true);
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch(`/api/world/context?group=${groupId}`, { cache: "no-store" });
@@ -73,7 +81,16 @@ export default function WorldButton({
           {error}
         </p>
       )}
-      {ctx && (
+      {DEMO && (
+        <WorldEmulator
+          open={open}
+          onClose={() => setOpen(false)}
+          onProof={async (proof) => {
+            await onProof(proof as unknown as IDKitResult);
+          }}
+        />
+      )}
+      {!DEMO && ctx && (
         <IDKitRequestWidget
           open={open}
           onOpenChange={setOpen}
