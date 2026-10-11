@@ -145,7 +145,7 @@ export default function GroupScreen() {
         <div className="card participant-panel">
           <div className="participant-panel-head">
             <span className="label">{t("PARTICIPANTS", "PARTICIPANTES")}</span>
-            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{settledPeople} {t("settled", "en cero")}</span>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>{settledPeople} {t("settled", "en cero")}</span>
           </div>
 
           {people.map((p) => {
@@ -186,7 +186,7 @@ export default function GroupScreen() {
               </div>
               <div className="grow" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 <span style={{ fontSize: 14.5, fontWeight: 500 }}>{e.label}</span>
-                <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
+                <span style={{ fontSize: 12, color: "var(--muted)" }}>
                   {e.payer === you.id ? t("You paid", "Tú pagaste") : `${personNameFor(e.payer)} ${t("paid", "pagó")}`}
                 </span>
               </div>

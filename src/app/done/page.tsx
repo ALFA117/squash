@@ -172,7 +172,7 @@ function Done() {
               </span>
               <span className="money" style={{ fontSize: 14.5, textAlign: "right" }}>
                 {usd[`${transfer.from}-${transfer.to}`] !== undefined ? formatUsd(usd[`${transfer.from}-${transfer.to}`]) : formatCents(transfer.cents)}
-                <small style={{ display: "block", fontSize: 11, color: "#d3e8dc" }}>{formatCents(transfer.cents)} MXN</small>
+                <small style={{ display: "block", fontSize: 12, color: "#d3e8dc" }}>{formatCents(transfer.cents)} MXN</small>
               </span>
             </div>
           ))}
@@ -201,7 +201,7 @@ function Done() {
             </svg>
           </a>
         ) : !scheduleId ? (
-          <span style={{ fontSize: 11.5, color: "#a9d3bf", textAlign: "center", maxWidth: 280, lineHeight: 1.45 }}>
+          <span style={{ fontSize: 12, color: "#a9d3bf", textAlign: "center", maxWidth: 280, lineHeight: 1.45 }}>
             {t("This view did not come from a settlement — enter through the plan to move real money.", "Esta vista no vino de una liquidación — entra por el plan para mover dinero de verdad.")}
           </span>
         ) : null}
