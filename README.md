@@ -16,6 +16,11 @@ x402 on Hedera. No API key, no subscription, no seat.
 
 **Live:** <https://squash-pay.vercel.app> — `/nuevo` splits a bill at a table, `/join` walks the sample trip.
 
+> **Status, November 2026:** live bills (`/nuevo`, `/g/…`) are offline because the
+> Supabase project behind them cannot be reached; the site says so before anyone
+> fills in a form. The sample trip (`/join`) still settles end to end on Hedera
+> testnet, x402 payment for the plan included.
+
 **Try it in a minute:** open `/nuevo`, create a bill in pesos or dollars, open the QR on a second device (or a private window), and confirm from both. The pesos are converted at today's rate and settle as tUSD, a Hedera dollar token.
 
 **Picking this up?** [CONTRIBUTING.md](CONTRIBUTING.md) gets you running in a
@@ -208,7 +213,7 @@ scripts/test-dinner.mjs   a whole dinner plus five attacks, against any server
 The plan screen calls the API over HTTP rather than importing the engine, so the
 paid path gets exercised end to end the moment the 402 challenge is switched on.
 
-for the Eth Online 2026
+Built for ETHOnline 2026.
 
 ## License
 
