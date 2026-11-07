@@ -145,7 +145,7 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
                 x={(x1 + x2) / 2}
                 y={(y1 + y2) / 2}
                 fill="var(--settled-strong)"
-                fontSize="9.5"
+                fontSize="12.5"
                 fontWeight="600"
                 textAnchor="middle"
                 dominantBaseline="middle"
@@ -202,7 +202,7 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
               y={p.y + 34}
               textAnchor="middle"
               fontFamily="var(--f-body)"
-              fontSize="9"
+              fontSize="12.5"
               fill="var(--muted)"
             >
               {node.name ?? node.initial}
@@ -216,8 +216,8 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
         y={H - 6}
         textAnchor="middle"
         fontFamily="var(--f-mono)"
-        fontSize="10.5"
-        letterSpacing="0.8"
+        fontSize="12.5"
+        letterSpacing="0.3"
         fill="var(--muted)"
       >
         {t("FAINT LINES ARE WHAT THEY OWED BEFORE", "LO TENUE ES LO QUE SE DEBÍAN ANTES")}

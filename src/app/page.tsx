@@ -9,7 +9,8 @@ import { CountUp, Magnetic, ReplayInView, ScrollProgress, TiltCard } from "@/com
 import { useLocale } from "@/components/Locale";
 import { formatUsd } from "@/lib/money";
 import { formatCents, netExpenses } from "@/lib/netting";
-import { VALLE_DE_BRAVO } from "@/lib/sample";
+import { tripPeople, VALLE_DE_BRAVO } from "@/lib/sample";
+import { useLiveBills } from "@/lib/useLiveBills";
 import { useUsdRate } from "@/lib/useUsdRate";
 
 const TOKEN_URL = "https://hashscan.io/testnet/token/0.0.10511085";
@@ -19,16 +20,26 @@ const SAMPLE_BILL = 250_000; // $2,500.00 MXN
  * The front door.
  *
  * It leads with the thing a person does — split a bill at the table — and
- * then shows why it can be trusted: the dollars are real dollars at today's
- * rate, nobody pays until everyone agrees, and every number links to the
- * chain. The engine numbers are computed by the same solver the product
- * runs, not typed in.
+ * then shows why it can be trusted: the dollars are exact at today's rate
+ * (test dollars on Hedera testnet), nobody pays until everyone agrees, and
+ * the on-chain numbers link to the chain. The engine numbers are computed by
+ * the same solver the product runs, not typed in.
  */
 export default function Landing() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { grossEdges, transfers, compression } = netExpenses(VALLE_DE_BRAVO.expenses);
   const people = VALLE_DE_BRAVO.people.length;
   const rate = useUsdRate("MXN");
+  const live = useLiveBills();
+  const offlineNote =
+    live === "offline" ? (
+      <span className="lp-status" role="status">
+        {t(
+          "Live bills are offline right now — their database cannot be reached. The sample trip still settles end to end on Hedera testnet.",
+          "Las cuentas reales están fuera de línea ahora — no se puede llegar a su base de datos. El viaje de ejemplo sigue liquidando completo en Hedera testnet.",
+        )}
+      </span>
+    ) : null;
 
   return (
     <main className="landing">
@@ -68,6 +79,7 @@ export default function Landing() {
               </PressLink>
             </Magnetic>
           </div>
+          {offlineNote}
         </div>
         <div className="lp-hero-mark">
           <Logo3D alt={t("Squash logo: an eye inside a network of connections", "Logo de Squash: un ojo dentro de una red de conexiones")} />
@@ -103,8 +115,8 @@ export default function Landing() {
       <Reveal>
         <section className="lp-dollars" aria-labelledby="lp-dollars-title">
           <div className="lp-dollars-copy">
-            <span className="lp-kicker">{t("Real money, exactly", "Dinero real, exacto")}</span>
-            <h2 id="lp-dollars-title">{t("Pesos in, real dollars out", "Entran pesos, salen dólares de verdad")}</h2>
+            <span className="lp-kicker">{t("Exact to the cent", "Exacto al centavo")}</span>
+            <h2 id="lp-dollars-title">{t("Pesos in, dollars out", "Entran pesos, salen dólares")}</h2>
             <ul className="lp-points">
               <Point icon={<path d="M3 12h4l3-8 4 16 3-8h4" />}>
                 <strong>{t("Today's rate, frozen.", "El tipo de cambio de hoy, congelado.")}</strong>{" "}
@@ -116,7 +128,7 @@ export default function Landing() {
               </Point>
               <Point icon={<><circle cx="12" cy="12" r="9" /><path d="M12 7v10M9 10h4.5a1.5 1.5 0 010 3H10a1.5 1.5 0 000 3h5" /></>}>
                 <strong>{t("Dollars on Hedera.", "Dólares en Hedera.")}</strong>{" "}
-                {t("On testnet they are tUSD, a token where one unit is one cent; on mainnet the same code settles in USDC.", "En pruebas son tUSD, un token donde una unidad es un centavo; en la red principal el mismo código liquida en USDC.")}
+                {t("Here they are tUSD, a Hedera testnet token where one unit is one cent and nothing is worth real money. The token is a setting; nothing runs on mainnet.", "Aquí son tUSD, un token de la red de pruebas de Hedera donde una unidad es un centavo y nada vale dinero real. El token es configurable; nada corre en la red principal.")}
               </Point>
             </ul>
           </div>
@@ -188,8 +200,9 @@ export default function Landing() {
             <span className="bento-by">Privy</span>
             <h3>{t("Get paid in your own wallet", "Cobra en tu propia cartera")}</h3>
             <p>
-              {t("Whoever paid signs in with an email and the money lands in a wallet they own — no seed phrase, no crypto words.", "Quien pagó entra con su correo y el dinero llega a una cartera suya — sin frases secretas ni palabras cripto.")}
+              {t("On a live bill, whoever paid can sign in with an email and receive the dollars in a wallet they own — no seed phrase, no crypto words.", "En una cuenta real, quien pagó puede entrar con su correo y recibir los dólares en una cartera suya — sin frases secretas ni palabras cripto.")}
             </p>
+            <span className="bento-tag">{t("Live bills only · not in the sample trip", "Solo en cuentas reales · no en el viaje de ejemplo")}</span>
           </TiltCard>
 
           <TiltCard className="bento bento-world" max={4}>
@@ -197,8 +210,9 @@ export default function Landing() {
             <span className="bento-by">World ID · Selfie Check</span>
             <h3>{t("One real person, one seat", "Una persona real, un lugar")}</h3>
             <p>
-              {t("Tables can ask for verified people: no fake guests, nobody holding two seats — and a lost seat comes back by verifying again.", "La mesa puede pedir personas verificadas: sin invitados falsos ni alguien con dos lugares — y si pierdes tu lugar, lo recuperas verificándote otra vez.")}
+              {t("A live bill can ask for verified people: no fake guests, nobody holding two seats — and a lost seat comes back by verifying again.", "Una cuenta real puede pedir personas verificadas: sin invitados falsos ni alguien con dos lugares — y si pierdes tu lugar, lo recuperas verificándote otra vez.")}
             </p>
+            <span className="bento-tag">{t("Demo: the World App step is simulated and labelled", "Demo: el paso de World App es simulado y está rotulado")}</span>
           </TiltCard>
         </section>
       </Reveal>
@@ -206,7 +220,7 @@ export default function Landing() {
       <Reveal>
         <section className="lp-engine" aria-labelledby="lp-engine-title">
           <ReplayInView className="lp-engine-graph">
-            <DebtGraph nodes={VALLE_DE_BRAVO.people.map((p) => ({ id: p.id, initial: p.initial, name: p.name, isYou: p.isYou }))} grossEdges={grossEdges} transfers={transfers} />
+            <DebtGraph nodes={tripPeople(locale).map((p) => ({ id: p.id, initial: p.initial, name: p.name, isYou: p.isYou }))} grossEdges={grossEdges} transfers={transfers} />
           </ReplayInView>
           <div className="lp-engine-copy">
             <span className="lp-kicker">{t("For a whole trip", "Para un viaje entero")}</span>
@@ -233,8 +247,8 @@ export default function Landing() {
 
       <Reveal>
         <section className="lp-proofs" aria-labelledby="lp-proofs-title">
-          <h2 id="lp-proofs-title">{t("Everything can be checked", "Todo se puede verificar")}</h2>
-          <p className="lp-muted">{t("Every claim on this page opens on HashScan, Hedera's public explorer.", "Cada afirmación de esta página se abre en HashScan, el explorador público de Hedera.")}</p>
+          <h2 id="lp-proofs-title">{t("Check it yourself", "Compruébalo tú")}</h2>
+          <p className="lp-muted">{t("What happens on chain opens on HashScan, Hedera's public testnet explorer — and the code is public.", "Lo que pasa en la cadena se abre en HashScan, el explorador público de la red de pruebas de Hedera — y el código es público.")}</p>
           <div className="lp-chips">
             <a className="lp-chip" href="https://hashscan.io/testnet/transaction/0.0.7162784-1789249485-560257425" target="_blank" rel="noreferrer">{t("A plan paid over x402 ↗", "Un plan pagado con x402 ↗")}</a>
             <a className="lp-chip" href="https://hashscan.io/testnet/schedule/0.0.10510675" target="_blank" rel="noreferrer">{t("A bill settled on the last yes ↗", "Una cuenta liquidada con el último sí ↗")}</a>
@@ -255,6 +269,7 @@ export default function Landing() {
               {t("Split a bill", "Dividir una cuenta")}
             </PressLink>
           </Magnetic>
+          {offlineNote}
         </section>
       </Reveal>
 

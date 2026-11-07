@@ -121,19 +121,37 @@ export function CountUp({
   const fmt = useRef(format);
   fmt.current = format;
 
-  // Before it is seen, show the starting value — only once the page is live.
+  // Before it is seen, show the starting value — only once the page is live,
+  // and only while the number is still BELOW the fold. If the reader jumps
+  // past it (End key, a restored scroll, an anchor) it never counts, so it
+  // must show the true figure rather than stay stuck on the start value.
+  const done = useRef(false);
+  const target = useRef(to);
+  target.current = to;
   useEffect(() => {
-    if (reduce || armed.current || typeof IntersectionObserver === "undefined") return;
-    const r = ref.current?.getBoundingClientRect();
-    const alreadyVisible = r && r.top < window.innerHeight && r.bottom > 0;
-    if (!alreadyVisible) {
+    if (reduce || done.current || typeof IntersectionObserver === "undefined") return;
+    if (!armed.current) {
+      const r = ref.current?.getBoundingClientRect();
+      if (!r || r.top < window.innerHeight) return;
       armed.current = true;
       setText(fmt.current(from));
     }
+
+    const skipped = () => {
+      const now = ref.current?.getBoundingClientRect();
+      if (!done.current && now && now.bottom < 0) {
+        done.current = true;
+        setText(fmt.current(target.current));
+        window.removeEventListener("scroll", skipped);
+      }
+    };
+    window.addEventListener("scroll", skipped, { passive: true });
+    return () => window.removeEventListener("scroll", skipped);
   }, [reduce, from]);
 
   useEffect(() => {
-    if (!inView || reduce || !armed.current) return;
+    if (!inView || reduce || !armed.current || done.current) return;
+    done.current = true;
     const controls = animate(from, to, {
       duration,
       ease: [0.16, 1, 0.3, 1],
@@ -145,6 +163,7 @@ export function CountUp({
     return () => {
       controls.stop();
       clearTimeout(settle);
+      setText(fmt.current(to));
     };
   }, [inView, reduce, from, to, duration]);
 
