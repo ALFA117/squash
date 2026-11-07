@@ -4,6 +4,7 @@ import { DebtGraph } from "@/components/DebtGraph";
 import { PayingNotice } from "@/components/PayingNotice";
 import { useGroup } from "@/components/GroupProvider";
 import { formatCents } from "@/lib/netting";
+import { explain } from "@/lib/http";
 import { usePlan } from "@/lib/usePlan";
 import { useLocale } from "@/components/Locale";
 import { PressLink } from "@/components/Press";
@@ -36,7 +37,7 @@ export default function PlanScreen() {
 
       {error && (
         <p role="alert" style={{ padding: "0 22px", color: "var(--owed)", fontSize: 14 }}>
-          {t("We couldn't calculate the plan", "No se pudo calcular el plan")}: {error}
+          {t("We couldn't calculate the plan", "No se pudo calcular el plan")}: {explain(error, t)}
         </p>
       )}
 
@@ -62,7 +63,7 @@ export default function PlanScreen() {
             <span style={{ fontSize: 13.5, color: "var(--muted)" }}>
               {t("transfers instead of", "transferencias en vez de")} {plan.grossEdges.length} ·{" "}
               <strong style={{ color: "var(--settled)", fontWeight: 500 }}>
-                {Math.round(plan.compression * 100)}% {t("fewer fees", "menos comisiones")}
+                {Math.round(plan.compression * 100)}% {t("fewer payments", "menos pagos")}
               </strong>
             </span>
           </section>

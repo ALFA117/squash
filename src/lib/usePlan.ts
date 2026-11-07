@@ -25,7 +25,9 @@ export interface PlanResponse {
  */
 export function usePlan(expenses: Expense[]) {
   const [plan, setPlan] = useState<PlanResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // The raw failure; screens explain it with explain() so the message follows
+  // the language toggle instead of being frozen in one language.
+  const [error, setError] = useState<Error | null>(null);
 
   // Every fetch here spends the app's balance buying a netting run. Keying the
   // effect on the CONTENT rather than the array reference means a re-render
@@ -52,7 +54,7 @@ export function usePlan(expenses: Expense[]) {
       .then(async (r) => {
         if (!r.ok) {
           const body = (await r.json().catch(() => ({}))) as { error?: string };
-          throw new Error(body.error ?? `El motor respondió ${r.status}`);
+          throw new Error(body.error ?? `The engine answered ${r.status}`);
         }
         return (await r.json()) as PlanResponse;
       })
@@ -60,9 +62,7 @@ export function usePlan(expenses: Expense[]) {
         if (!cancelled) setPlan(data);
       })
       .catch((e: Error) => {
-        if (!cancelled) {
-          setError(e.name === "SlowError" ? "La red tardó demasiado. Recarga la página para intentarlo de nuevo." : e.message);
-        }
+        if (!cancelled) setError(e);
       });
 
     return () => {

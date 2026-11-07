@@ -80,3 +80,32 @@ export function personName(id: string): string {
 export function personInitial(id: string): string {
   return VALLE_DE_BRAVO.people.find((p) => p.id === id)?.initial ?? id[0].toUpperCase();
 }
+
+/**
+ * The trip is a Mexican trip, so its data is written in Spanish. In English
+ * the person you play reads "You", the dates read in English and the sample
+ * expenses get English labels — at render time only: what is sent to the
+ * engine stays byte-for-byte the same, so switching language never buys the
+ * same plan twice.
+ */
+export function tripPeople(locale: "en" | "es"): Person[] {
+  if (locale === "es") return VALLE_DE_BRAVO.people;
+  return VALLE_DE_BRAVO.people.map((p) => (p.isYou ? { ...p, name: "You", initial: "Y" } : p));
+}
+
+export function tripDates(locale: "en" | "es"): string {
+  return locale === "es" ? VALLE_DE_BRAVO.dates : "February 14–16";
+}
+
+const LABELS_EN: Record<string, string> = {
+  "Casa completa, 2 noches": "Whole house, 2 nights",
+  "Cena y bar del sábado": "Saturday dinner and bar",
+  "Súper y desayunos": "Groceries and breakfasts",
+  "Combustible ida y vuelta": "Fuel, there and back",
+  "Lancha en la presa": "Boat on the lake",
+  "Casetas de la autopista": "Highway tolls",
+};
+
+export function expenseLabel(label: string, locale: "en" | "es"): string {
+  return locale === "es" ? label : (LABELS_EN[label] ?? label);
+}

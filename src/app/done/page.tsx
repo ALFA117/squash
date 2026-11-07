@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { formatUsd } from "@/lib/money";
-import { formatCents } from "@/lib/netting";
-import { usePlan } from "@/lib/usePlan";
+import { formatCents, netExpenses } from "@/lib/netting";
 import { useLocale } from "@/components/Locale";
 import { useGroup } from "@/components/GroupProvider";
 
@@ -16,10 +15,14 @@ import { useGroup } from "@/components/GroupProvider";
  * executed, and only renders when there is one. A dead link to a real
  * explorer is worse than no link, so with no settlement this screen says so
  * rather than inventing a hash.
+ *
+ * The transfers are worked out here with the same deterministic solver: the
+ * plan was already bought over x402 on the plan screen, and buying it a
+ * third time just to draw this list would only spend the agent's balance.
  */
 function Done() {
   const { name: groupName, people, expenses } = useGroup();
-  const { plan, error } = usePlan(expenses);
+  const plan = useMemo(() => netExpenses(expenses), [expenses]);
   const { t } = useLocale();
   const scheduleId = useSearchParams().get("schedule");
   const [usd, setUsd] = useState<Record<string, number>>({});
@@ -95,11 +98,26 @@ function Done() {
     };
   }, [scheduleId]);
 
-  if (error || !plan) {
+  // Opened without a settlement behind it: say so, instead of a "pending"
+  // screen with a zero balance that nothing is actually waiting on.
+  if (!scheduleId) {
     return (
       <main className="phone done">
-        <div style={{ flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
-          <span style={{ color: "#d3e8dc", fontSize: 14 }}>{error ?? t("Loading…", "Cargando…")}</span>
+        <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "40px 26px 0", textAlign: "center" }}>
+          <span style={{ fontFamily: "var(--f-display)", fontSize: 30, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.12 }}>
+            {t("No settlement to show yet", "Todavía no hay liquidación que mostrar")}
+          </span>
+          <span style={{ fontSize: 14, color: "#d3e8dc", lineHeight: 1.55, maxWidth: 300, textWrap: "pretty" }}>
+            {t(
+              "This screen shows a settlement once everyone has confirmed it. Go through the sample trip's plan to run one on Hedera testnet.",
+              "Esta pantalla muestra una liquidación cuando todos la confirmaron. Recorre el plan del viaje de ejemplo para correr una en Hedera testnet.",
+            )}
+          </span>
+        </div>
+        <div style={{ padding: "0 26px 22px", display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
+          <Link href="/grupo" className="btn" style={{ background: "#f1f5f1", color: "var(--settled)", fontWeight: 600 }}>
+            {t("Open the sample trip", "Abrir el viaje de ejemplo")}
+          </Link>
         </div>
       </main>
     );
@@ -154,12 +172,14 @@ function Done() {
           <span style={{ fontSize: 14, color: "#d3e8dc" }}>{groupName}</span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "2px 0 4px" }}>
-          <span className="label" style={{ color: "#d3e8dc" }}>{t("YOUR BALANCE", "TU SALDO")}</span>
-          <span className="money" style={{ fontSize: 46, fontWeight: 500, letterSpacing: "-0.03em" }}>
-            $0.00
-          </span>
-        </div>
+        {isVerified && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "2px 0 4px" }}>
+            <span className="label" style={{ color: "#d3e8dc" }}>{t("YOUR BALANCE", "TU SALDO")}</span>
+            <span className="money" style={{ fontSize: 46, fontWeight: 500, letterSpacing: "-0.03em" }}>
+              $0.00
+            </span>
+          </div>
+        )}
 
         <div className="done-list">
           {plan.transfers.map((transfer) => (
@@ -188,7 +208,7 @@ function Done() {
           {t("Back to group", "Volver al grupo")}
         </Link>
 
-        {scheduleId && isVerified ? (
+        {isVerified && (
           <a
             className="receipt-link"
             href={`${explorer}/schedule/${encodeURIComponent(scheduleId)}`}
@@ -200,11 +220,7 @@ function Done() {
               <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5" />
             </svg>
           </a>
-        ) : !scheduleId ? (
-          <span style={{ fontSize: 12, color: "#a9d3bf", textAlign: "center", maxWidth: 280, lineHeight: 1.45 }}>
-            {t("This view did not come from a settlement — enter through the plan to move real money.", "Esta vista no vino de una liquidación — entra por el plan para mover dinero de verdad.")}
-          </span>
-        ) : null}
+        )}
       </div>
     </main>
   );

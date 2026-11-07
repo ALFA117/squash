@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { accountMap, demoAccounts } from "@/lib/demoAccounts";
 import { usdRate } from "@/lib/fx";
 import { toUsdCents } from "@/lib/money";
-import { fetchPaidPlan } from "@/lib/payingClient";
 import { VALLE_DE_BRAVO } from "@/lib/sample";
 import { validateExpenses } from "@/lib/validateExpenses";
 import { scheduleSettlement, scheduleStatus } from "@/lib/scheduled";
-import type { Transfer } from "@/lib/netting";
+import { netExpenses, type Transfer } from "@/lib/netting";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -50,9 +49,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const engineUrl = new URL("/api/v1/net", request.url).toString();
-    const plan = await fetchPaidPlan(engineUrl, { expenses: checked.expenses });
-    const transfers = plan.transfers as Transfer[];
+    // The plan screen already bought this exact plan over x402 a moment ago.
+    // Buying it again here only spent the agent's balance twice per run (the
+    // engine's cache lives in one serverless instance, so it rarely hit). The
+    // solver is deterministic, so the same expenses give the same transfers.
+    const transfers: Transfer[] = netExpenses(checked.expenses).transfers;
 
     // The trip is in pesos; what settles is dollars. Convert the plan once,
     // at today's rate, keeping its total exact.

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { VALLE_DE_BRAVO, Person } from "@/lib/sample";
+import { tripDates, tripPeople, VALLE_DE_BRAVO, Person } from "@/lib/sample";
+import { useLocale } from "./Locale";
 import { Expense } from "@/lib/netting";
 
 /**
@@ -59,6 +60,7 @@ function load(): Expense[] {
 }
 
 export function GroupProvider({ children }: { children: React.ReactNode }) {
+  const { locale } = useLocale();
   const [expenses, setExpenses] = useState<Expense[]>(VALLE_DE_BRAVO.expenses);
   const [loaded, setLoaded] = useState(false);
 
@@ -86,8 +88,8 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
     <GroupContext.Provider
       value={{
         name: VALLE_DE_BRAVO.name,
-        dates: VALLE_DE_BRAVO.dates,
-        people: VALLE_DE_BRAVO.people,
+        dates: tripDates(locale),
+        people: tripPeople(locale),
         expenses,
         addExpense,
         resetGroup,

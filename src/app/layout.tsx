@@ -10,7 +10,10 @@ const SITE = "https://squash-pay.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   alternates: { canonical: "/" },
-  title: "Squash — split the bill, nobody pays until everyone says yes",
+  title: {
+    default: "Squash — split the bill, nobody pays until everyone says yes",
+    template: "%s · Squash",
+  },
   description:
     "Split a bill at the table by QR. Pesos convert to dollars at today's rate, and one Hedera transaction settles it only when everyone has confirmed.",
   openGraph: {
@@ -52,15 +55,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AmbientBackground />
-        <Providers>
-          <LocaleProvider>
+        <LocaleProvider>
+          <Providers>
             <div className="top-controls">
               <ThemeToggle />
               <LanguageToggle />
             </div>
             {children}
-          </LocaleProvider>
-        </Providers>
+          </Providers>
+        </LocaleProvider>
       </body>
     </html>
   );

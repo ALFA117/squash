@@ -189,6 +189,12 @@ export default function SignScreen() {
               />
             ))}
           </div>
+          <span style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.45, textWrap: "pretty" }}>
+            {t(
+              "Sample trip: the app signs for the others with the testnet accounts it holds for them. Each signature is a real testnet transaction; you confirm your own part.",
+              "Viaje de ejemplo: la app firma por los demás con las cuentas de prueba que guarda para ellos. Cada firma es una transacción real en testnet; tú confirmas tu parte.",
+            )}
+          </span>
         </div>
 
         <LayoutGroup>

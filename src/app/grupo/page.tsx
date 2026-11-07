@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { formatCents, netExpenses } from "@/lib/netting";
+import { expenseLabel } from "@/lib/sample";
 import { useLocale } from "@/components/Locale";
 import { useGroup } from "@/components/GroupProvider";
 
@@ -115,14 +116,14 @@ export default function GroupScreen() {
             <small>{t("open obligations", "obligaciones abiertas")}</small>
           </div>
           <div className="summary-card">
-            <span className="label">{t("OWED TO YOU", "TE DEBEN")}</span>
+            <span className="label">{t("ARE OWED", "LES DEBEN")}</span>
             <strong>{peopleOwed}</strong>
-            <small>{t("people", "personas")}</small>
+            <small>{t("people in the group", "personas del grupo")}</small>
           </div>
           <div className="summary-card">
-            <span className="label">{t("YOU OWE", "DEBES")}</span>
+            <span className="label">{t("OWE", "DEBEN")}</span>
             <strong>{peopleWhoOwe}</strong>
-            <small>{t("people", "personas")}</small>
+            <small>{t("people in the group", "personas del grupo")}</small>
           </div>
         </div>
 
@@ -150,11 +151,12 @@ export default function GroupScreen() {
 
           {people.map((p) => {
             const balance = balances[p.id] ?? 0;
+            const isYou = p.id === "tu";
             const status =
               balance > 0
-                ? t("is owed", "te debe")
+                ? isYou ? t("you are owed", "te deben") : t("is owed", "le deben")
                 : balance < 0
-                  ? t("owes", "debe")
+                  ? isYou ? t("you owe", "debes") : t("owes", "debe")
                   : t("settled", "en cero");
 
             return (
@@ -185,7 +187,7 @@ export default function GroupScreen() {
                 {personInitialFor(e.payer)}
               </div>
               <div className="grow" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <span style={{ fontSize: 14.5, fontWeight: 500 }}>{e.label}</span>
+                <span style={{ fontSize: 14.5, fontWeight: 500 }}>{expenseLabel(e.label, locale)}</span>
                 <span style={{ fontSize: 12, color: "var(--muted)" }}>
                   {e.payer === you.id ? t("You paid", "Tú pagaste") : `${personNameFor(e.payer)} ${t("paid", "pagó")}`}
                 </span>
