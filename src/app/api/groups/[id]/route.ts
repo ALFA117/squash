@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import {
   confirmShare,
+  DB_OFFLINE,
   getGroup,
+  isDbUnreachable,
   GroupError,
   joinGroup,
   lockGroup,
@@ -23,6 +25,7 @@ export const maxDuration = 60;
 type Ctx = { params: Promise<{ id: string }> };
 
 function fail(e: unknown) {
+  if (isDbUnreachable(e)) return NextResponse.json({ error: DB_OFFLINE }, { status: 503 });
   const status = e instanceof GroupError ? e.status : 500;
   return NextResponse.json({ error: (e as Error).message }, { status });
 }

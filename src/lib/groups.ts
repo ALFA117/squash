@@ -78,6 +78,18 @@ export class GroupError extends Error {
   }
 }
 
+/**
+ * Code sent to the browser when the database cannot be reached at all (DNS
+ * gone, project paused, network down). The client turns it into a message
+ * a person can act on instead of a raw "TypeError: fetch failed".
+ */
+export const DB_OFFLINE = "db_offline";
+
+export function isDbUnreachable(e: unknown): boolean {
+  const text = `${(e as Error)?.message ?? ""} ${String((e as { cause?: unknown })?.cause ?? "")}`;
+  return /fetch failed|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|getaddrinfo|Supabase server access is not configured/i.test(text);
+}
+
 const ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789"; // no 0/o/1/l to misread
 
 function randomId(length: number): string {

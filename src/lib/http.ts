@@ -38,5 +38,11 @@ export function explain(e: unknown, t: (en: string, es: string) => string): stri
       "Sin conexión con el servidor. Revisa tu internet y vuelve a intentarlo.",
     );
   }
+  if (err?.message === "db_offline") {
+    return t(
+      "Splitting a real bill is offline right now: its database is paused. The sample trip still runs end to end on Hedera testnet.",
+      "Dividir una cuenta real está fuera de línea ahora: su base de datos está en pausa. El viaje de ejemplo sigue funcionando completo en Hedera testnet.",
+    );
+  }
   return err?.message || t("Something went wrong — try again.", "Algo salió mal — vuelve a intentarlo.");
 }

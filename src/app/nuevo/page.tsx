@@ -31,6 +31,7 @@ export default function NewBill() {
   const reduce = useReducedMotion();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
 
   const cents = parseMoney(amount);
   const ready = name.trim() && what.trim() && cents !== null && cents > 0 && !busy;
@@ -63,6 +64,7 @@ export default function NewBill() {
       saveSession(data.groupId, { memberId: data.memberId, secret: data.secret });
       router.push(`/g/${data.groupId}`);
     } catch (err) {
+      setOffline((err as Error)?.message === "db_offline");
       setError(explain(err, t));
       setBusy(false);
     }
@@ -175,6 +177,12 @@ export default function NewBill() {
         {error && (
           <p className="form-error" role="alert">
             {error}
+            {offline && (
+              <>
+                {" "}
+                <Link href="/join">{t("Open the sample trip →", "Abrir el viaje de ejemplo →")}</Link>
+              </>
+            )}
           </p>
         )}
 
