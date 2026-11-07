@@ -77,11 +77,12 @@ export default function GroupRoom() {
 
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // Raw failures, explained at render time so they follow the language toggle.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [session, setSession] = useState<GroupSession | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<unknown>(null);
 
   // ── loading and live updates ────────────────────────────────────────────
   // Every read is numbered. A slow read that comes back after a newer one is
@@ -106,9 +107,9 @@ export default function GroupRoom() {
       setListSeq(mine);
       setLoadError(null);
     } catch (e) {
-      setLoadError(explain(e, t));
+      setLoadError(e);
     }
-  }, [id, t]);
+  }, [id]);
 
   const adopt = useCallback(
     (s: GroupSession) => {
@@ -135,9 +136,14 @@ export default function GroupRoom() {
   }, [id, refresh, adopt]);
 
   // Realtime for the instant update; a slow poll underneath so the table
-  // never goes stale if the socket quietly drops.
+  // never goes stale if the socket quietly drops. Both start only once the
+  // bill has loaded: with the database unreachable (or no such bill) there is
+  // nothing to watch, and a socket retrying forever only fills the console.
+  const dbOffline = (loadError as Error | null)?.message === "db_offline";
+  const watching = group !== null && !dbOffline;
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (!watching) return;
     const soon = () => {
       if (pending.current) clearTimeout(pending.current);
       pending.current = setTimeout(() => void refresh(), 120);
@@ -159,7 +165,7 @@ export default function GroupRoom() {
       if (pending.current) clearTimeout(pending.current);
       if (channel) void browserClient().removeChannel(channel);
     };
-  }, [id, refresh]);
+  }, [id, refresh, watching]);
 
   // ── acting as this person ───────────────────────────────────────────────
   const act = useCallback(
@@ -182,7 +188,7 @@ export default function GroupRoom() {
         await refresh();
         return data;
       } catch (e) {
-        setActionError(explain(e, t));
+        setActionError(e);
         // The server may have finished after we gave up waiting: show what is true.
         void refresh();
         return null;
@@ -190,7 +196,7 @@ export default function GroupRoom() {
         setBusy(null);
       }
     },
-    [id, session, refresh, t],
+    [id, session, refresh],
   );
 
   const me = useMemo(() => members.find((m) => m.id === session?.memberId) ?? null, [members, session]);
@@ -208,16 +214,55 @@ export default function GroupRoom() {
   const [seat, setSeat] = useState<{ name: string; url: string } | null>(null);
 
   // ── render states ───────────────────────────────────────────────────────
-  if (loadError && !group) {
+  if (loadError !== null && !group) {
+    if (dbOffline) {
+      return (
+        <main className="phone">
+          <div className="screen-head">
+            <h1 className="title">{t("Live bills are offline", "Cuentas reales fuera de línea")}</h1>
+          </div>
+          <div className="room-pad">
+            <p className="offline-note" role="status">
+              {t(
+                "This bill cannot be opened right now: the bill database cannot be reached. Nothing was charged. The sample trip still settles end to end on Hedera testnet.",
+                "Esta cuenta no se puede abrir ahora: no se puede llegar a la base de datos de las cuentas. No se cobró nada. El viaje de ejemplo sigue liquidando completo en Hedera testnet.",
+              )}
+            </p>
+            <Link href="/join" className="btn btn-dark">
+              {t("Open the sample trip", "Abrir el viaje de ejemplo")}
+            </Link>
+            <Link href="/" className="btn btn-ghost">
+              {t("Back to home", "Volver al inicio")}
+            </Link>
+          </div>
+        </main>
+      );
+    }
+    const missing = /does not exist/i.test((loadError as Error | null)?.message ?? "");
     return (
       <main className="phone">
         <div className="screen-head">
-          <h1 className="title">{t("Bill not found", "No encontramos la cuenta")}</h1>
+          <h1 className="title">
+            {missing ? t("Bill not found", "No encontramos la cuenta") : t("Couldn't load the bill", "No se pudo cargar la cuenta")}
+          </h1>
         </div>
         <div className="room-pad">
-          <p className="form-error" role="alert">{loadError}</p>
-          <Link href="/nuevo" className="btn btn-dark">
-            {t("Start a new bill", "Empezar una cuenta nueva")}
+          <p className="form-error" role="alert">
+            {missing
+              ? t("There is no bill at this link. Check the QR or ask whoever paid to show it again.", "No hay ninguna cuenta en este enlace. Revisa el QR o pídele a quien pagó que lo enseñe otra vez.")
+              : explain(loadError, t)}
+          </p>
+          {missing ? (
+            <Link href="/nuevo" className="btn btn-dark">
+              {t("Start a new bill", "Empezar una cuenta nueva")}
+            </Link>
+          ) : (
+            <PressButton type="button" className="btn btn-dark" onClick={() => void refresh()}>
+              {t("Try again", "Intentar de nuevo")}
+            </PressButton>
+          )}
+          <Link href="/join" className="btn btn-ghost">
+            {t("Open the sample trip", "Abrir el viaje de ejemplo")}
           </Link>
         </div>
       </main>
@@ -281,9 +326,9 @@ export default function GroupRoom() {
             .reduce((a, m) => a + (m.settle_usd_cents ?? 0), 0)}
         />
 
-        {actionError && (
+        {actionError !== null && (
           <p className="form-error" role="alert">
-            {actionError}
+            {explain(actionError, t)}
           </p>
         )}
 
@@ -1201,7 +1246,7 @@ function JoinView({
   const { t } = useLocale();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const payer = members.find((m) => m.id === group.payer_id);
   const closed = group.status !== "open";
 
@@ -1229,7 +1274,7 @@ function JoinView({
       if (!res.ok || !data.memberId || !data.secret) throw new Error(data.error ?? `Error ${res.status}`);
       await onJoined({ memberId: data.memberId, secret: data.secret });
     } catch (err) {
-      setError(explain(err, t));
+      setError(err);
       setBusy(false);
     }
   }
@@ -1278,9 +1323,9 @@ function JoinView({
                 required
               />
             </label>
-            {error && (
+            {error !== null && (
               <p className="form-error" role="alert">
-                {error}
+                {explain(error, t)}
               </p>
             )}
             {group.require_human ? (
@@ -1324,7 +1369,7 @@ function JoinView({
                 );
                 const data = (await res.json()) as { memberId?: string; secret?: string; error?: string };
                 if (!res.ok || !data.memberId || !data.secret) {
-                  setError(data.error ?? `Error ${res.status}`);
+                  setError(new Error(data.error ?? `Error ${res.status}`));
                   throw new Error(data.error ?? "rejected");
                 }
                 await onRecovered({ memberId: data.memberId, secret: data.secret });
