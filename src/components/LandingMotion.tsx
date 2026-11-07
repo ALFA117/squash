@@ -150,7 +150,13 @@ export function CountUp({
   }, [reduce, from]);
 
   useEffect(() => {
-    if (!inView || reduce || !armed.current || done.current) return;
+    // Not counting (seen on load, already counted, or reduced motion): show
+    // the true figure, including a new one if `to` changes afterwards.
+    if (reduce || !armed.current || done.current) {
+      setText(fmt.current(to));
+      return;
+    }
+    if (!inView) return;
     done.current = true;
     const controls = animate(from, to, {
       duration,
