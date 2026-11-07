@@ -40,7 +40,7 @@ export default function Landing() {
 
       <header className="lp-hero">
         <div className="lp-hero-copy">
-          <span className="lp-kicker">{t("Split the bill · Hedera", "Divide la cuenta · Hedera")}</span>
+          <span className="lp-kicker">{t("Split the bill · Hedera testnet", "Divide la cuenta · Hedera testnet")}</span>
           <h1 aria-label={t("Nobody pays until everyone says yes.", "Nadie paga hasta que todos digan que sí.")}>
             <Words text={t("Nobody pays until", "Nadie paga hasta que")} />{" "}
             <span className="lp-accent">

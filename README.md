@@ -213,3 +213,25 @@ for the Eth Online 2026
 ## License
 
 MIT
+
+## FIX_NOTES (rediseño /diseno, 2026-10-11)
+
+- **Texto por debajo de 12 px**: 27 reglas de `globals.css` (eyebrows en mono, notas, chips) y 6 `fontSize` en línea (`done`, `expense`, `grupo`, `sign`) usaban 10–11.5 px; ahora el mínimo es 12 px.
+- **Áreas táctiles**: el botón de tema pasó de 40 a 44 px y el selector de idioma de 36 a 44 px de alto (cada opción, 40×36 dentro de la pastilla).
+- **SEO incompleto**: faltaban `metadataBase`, canonical, Open Graph completo (url, título, descripción), tarjeta de X, `robots.ts` (con las pantallas de un grupo concreto fuera del índice: `/g/`, `/sign`, `/done`, `/join`, `/login`, `/plan`), `sitemap.ts` y `manifest.ts`.
+- **Red sin etiquetar en el hero**: el eyebrow decía "Hedera" y ahora dice "Hedera testnet", igual que los enlaces a HashScan de la página.
+
+## DESIGN_NOTES
+
+- **Fondo 3D: el dado sacó la receta 1 (galería de figuras CSS 3D + constelación).** Se adaptó al tema: las figuras son **monedas con canto real** (dos caras con `$` y `US$` y 16 segmentos alrededor) que giran sobre su eje, **bloques de libro mayor** (cubos) y un **giroscopio de anillos** (el motor que compensa todas las deudas). Las estrellas de la constelación usan el verde "settled" y el ámbar del riel. Colores tomados de los tokens (`--settled`, `--rail`, `--owed`), así que el modo claro y el oscuro cambian solos, sin recargar (un `MutationObserver` sobre `data-theme`). `src/components/AmbientBackground.tsx`, montado una vez en `layout.tsx`.
+- **Completa en la landing, tranquila en la app**: en `/` la landing es transparente y se ven 8 figuras (4 en celular); en las pantallas de la app (`.phone`) quedan 4 figuras a media opacidad, y la tarjeta del teléfono es 90 % opaca para que montos y listas no compitan con el fondo. En celular no hay haces de luz y las figuras se reducen a la mitad. `prefers-reduced-motion` deja una escena quieta; la pestaña oculta pausa el canvas.
+- El logo 3D del hero se queda como el elemento protagonista; las figuras se movieron a los bordes para no encimarse con él.
+
+### Checklist de 2 minutos en el celular
+
+1. Abre `/`: detrás del hero flotan monedas y anillos, y no hay scroll horizontal.
+2. Mira el eyebrow: dice "Hedera testnet".
+3. Toca el sol o la luna: el fondo cambia de color al momento.
+4. Entra a "See the sample trip": el fondo se calma y los montos se leen sin esfuerzo.
+5. Toca EN/ES: los botones se pueden tocar sin fallar.
+6. Activa "Reducir movimiento" y recarga: nada se mueve.

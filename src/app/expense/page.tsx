@@ -102,7 +102,7 @@ export default function ExpenseScreen() {
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span className="label">{t("SPLIT BETWEEN", "SE DIVIDE ENTRE")}</span>
-            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>
               {finalAmong.length} {t("of", "de")} {people.length}
             </span>
           </div>

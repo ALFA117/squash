@@ -2,13 +2,32 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { LanguageToggle, LocaleProvider } from "@/components/Locale";
 import Providers from "@/components/Providers";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { THEME_SCRIPT, ThemeToggle } from "@/components/ThemeToggle";
 
+const SITE = "https://squash-pay.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE),
+  alternates: { canonical: "/" },
   title: "Squash — split the bill, nobody pays until everyone says yes",
   description:
     "Split a bill at the table by QR. Pesos convert to dollars at today's rate, and one Hedera transaction settles it only when everyone has confirmed.",
-  openGraph: { images: ["/brand/logo.png"] },
+  openGraph: {
+    type: "website",
+    url: SITE,
+    siteName: "Squash",
+    title: "Squash — nobody pays until everyone says yes",
+    description:
+      "Split a bill at the table by QR. One Hedera testnet transaction settles it only when everyone has confirmed.",
+    images: [{ url: "/brand/logo.png", alt: "Squash" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Squash — nobody pays until everyone says yes",
+    description: "Split a bill at the table by QR. One Hedera testnet transaction settles it on the last yes.",
+    images: ["/brand/logo.png"],
+  },
 };
 
 export const viewport = {
@@ -32,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <AmbientBackground />
         <Providers>
           <LocaleProvider>
             <div className="top-controls">

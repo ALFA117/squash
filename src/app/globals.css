@@ -68,7 +68,7 @@ html {
 
 .brand-tag {
   margin-top: 3px;
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--muted);
@@ -86,8 +86,8 @@ html {
 }
 
 .theme-toggle {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -107,7 +107,7 @@ html {
 
 .language-toggle {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 44px;
   padding: 3px;
   gap: 2px;
   border: 1px solid var(--rule);
@@ -118,15 +118,15 @@ html {
 }
 
 .language-option {
-  min-width: 36px;
-  min-height: 28px;
+  min-width: 40px;
+  min-height: 36px;
   border: 0;
   border-radius: 999px;
   padding: 0 8px;
   background: transparent;
   color: var(--muted);
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -203,13 +203,13 @@ body {
 }
 
 .subtitle {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 
 .label {
   font-family: var(--f-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   color: var(--muted);
   text-transform: uppercase;
@@ -260,7 +260,7 @@ body {
 
 .summary-card small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -302,7 +302,7 @@ body {
 .avatar.sm {
   width: 28px;
   height: 28px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .money {
@@ -366,7 +366,7 @@ body {
   border-left: 3px solid var(--rail);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(243, 244, 246, 0.9));
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--rail);
   overflow-wrap: anywhere;
   border-radius: 10px;
@@ -465,7 +465,7 @@ body {
   padding-top: 6px;
   border-top: 1px solid var(--rule);
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .group-preview-grid {
@@ -522,7 +522,7 @@ body {
 
 .participant-meta small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .balance-chip {
@@ -534,7 +534,7 @@ body {
   border-radius: 999px;
   border: 1px solid transparent;
   font-family: var(--f-mono);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -636,13 +636,13 @@ body {
   background: var(--ink);
   color: var(--surface);
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .join-step small {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 12px;
   line-height: 1.3;
 }
 
@@ -655,7 +655,7 @@ body {
   border-radius: 999px;
   border: 1px solid transparent;
   font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -709,7 +709,7 @@ body {
   border: 1px solid var(--rule);
   color: var(--muted);
   font-family: var(--f-mono);
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .chip-on {
@@ -984,7 +984,7 @@ input:focus-visible {
 
 .lp-kicker {
   font-family: var(--f-mono);
-  font-size: 11.5px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
@@ -1480,7 +1480,7 @@ a[class*="avatar"] {
 }
 
 .money-unit {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -1528,7 +1528,7 @@ a[class*="avatar"] {
   padding: 5px 10px;
   border-radius: 999px;
   font-family: var(--f-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   border: 1px solid var(--rule);
@@ -1732,7 +1732,7 @@ a[class*="avatar"] {
 }
 
 .mode-hint {
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.72;
   line-height: 1.3;
 }
@@ -1856,7 +1856,7 @@ a[class*="avatar"] {
 }
 
 .member-role {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -2078,7 +2078,7 @@ a[class*="avatar"] {
 .settle-sub {
   margin-top: -6px;
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -2132,13 +2132,13 @@ a[class*="avatar"] {
 
 .money-usd {
   font-family: var(--f-mono);
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--settled-strong);
   font-variant-numeric: tabular-nums;
 }
 
 .invite-tip {
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.45;
   color: var(--muted);
 }
@@ -2200,7 +2200,7 @@ a[class*="avatar"] {
 }
 
 .join-summary-item small {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -2578,7 +2578,7 @@ a[class*="avatar"] {
 
 .wallet-by {
   font-family: var(--f-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--muted);
   border: 1px solid var(--rule);
@@ -2662,7 +2662,7 @@ a[class*="avatar"] {
   margin-left: 6px;
   padding: 1px 7px;
   border-radius: 999px;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--settled-strong);
   background: color-mix(in srgb, var(--settled) 12%, transparent);
@@ -2709,7 +2709,7 @@ a[class*="avatar"] {
   padding: 2px 8px;
   border-radius: 999px;
   font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   color: #8a5a00;
   background: #ffe9b8;
@@ -2981,7 +2981,7 @@ a[class*="avatar"] {
 
 .bento-by {
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
@@ -3504,4 +3504,142 @@ a[class*="avatar"] {
   padding: 12px;
   border-radius: 20px;
   margin-bottom: 6px;
+}
+
+/* ─── Escena ambiental 3D (AmbientBackground) ───────────────────────────── */
+.amb-root {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--settled) 9%, transparent), transparent 42%),
+    var(--bg);
+}
+.amb-calm .amb-stage,
+.amb-calm .amb-stars { opacity: 0.55; }
+.amb-calm .amb-aurora { opacity: 0.7; }
+/* En claro las líneas doradas contrastan más con el fondo crema: se atenúan para no competir con el texto */
+[data-theme="light"] .amb-stage { opacity: 0.6; }
+[data-theme="light"] .amb-calm .amb-stage { opacity: 0.35; }
+
+/* Aurora: gradientes suaves (sin filter: blur, barato en móvil) */
+.amb-aurora { position: absolute; inset: -20%; }
+.amb-blob {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 50%;
+  will-change: transform;
+}
+.amb-blob-1 { left: -10%; top: -20%; background: radial-gradient(circle, color-mix(in srgb, var(--settled) 34%, transparent), transparent 62%); }
+.amb-blob-2 { right: -20%; top: 10%;  background: radial-gradient(circle, color-mix(in srgb, var(--rail) 30%, transparent), transparent 60%); }
+.amb-blob-3 { left: 20%; bottom: -35%; background: radial-gradient(circle, color-mix(in srgb, var(--owed) 26%, transparent), transparent 60%); }
+.amb-blob-1.amb-animate { animation: amb-drift-1 22s ease-in-out infinite alternate; }
+.amb-blob-2.amb-animate { animation: amb-drift-2 28s ease-in-out infinite alternate; }
+.amb-blob-3.amb-animate { animation: amb-drift-3 34s ease-in-out infinite alternate; }
+@keyframes amb-drift-1 { to { transform: translate3d(18vw, 12vh, 0) scale(1.15); } }
+@keyframes amb-drift-2 { to { transform: translate3d(-22vw, 18vh, 0) scale(0.9); } }
+@keyframes amb-drift-3 { to { transform: translate3d(12vw, -20vh, 0) scale(1.2); } }
+
+/* Haces de luz que barren la escena */
+.amb-beams { position: absolute; inset: 0; }
+.amb-beam {
+  position: absolute;
+  top: -30%;
+  width: 26vmax;
+  height: 160%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--settled) 9%, transparent), transparent);
+  transform: rotate(18deg) translate3d(-60vw, 0, 0);
+  will-change: transform;
+}
+.amb-beam.amb-animate { animation: amb-sweep 16s linear infinite; }
+.amb-beam:nth-child(2) { width: 14vmax; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rail) 8%, transparent), transparent); }
+.amb-beam:nth-child(2).amb-animate { animation-duration: 23s; animation-delay: -9s; }
+@keyframes amb-sweep {
+  from { transform: rotate(18deg) translate3d(-60vw, 0, 0); }
+  to   { transform: rotate(18deg) translate3d(160vw, 0, 0); }
+}
+
+/* Campo de estrellas (canvas) */
+.amb-stars { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Objetos 3D */
+.amb-stage { position: absolute; inset: 0; perspective: 900px; perspective-origin: 50% 40%; }
+.amb-float { position: absolute; transform-style: preserve-3d; will-change: transform; }
+.amb-spin {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--tilt, 0deg)) rotateY(0deg);
+}
+.amb-spin.amb-animate { animation-name: amb-rotate; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes amb-rotate {
+  from { transform: rotateX(var(--tilt, 0deg)) rotateY(0deg) rotateZ(0deg); }
+  to   { transform: rotateX(calc(var(--tilt, 0deg) + 360deg)) rotateY(360deg) rotateZ(90deg); }
+}
+.amb-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1.5px solid;
+  backface-visibility: visible;
+  box-shadow: 0 0 18px -4px currentColor, inset 0 0 22px -8px currentColor;
+}
+.amb-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid;
+  border-radius: 50%;
+  box-shadow: 0 0 22px -4px currentColor, inset 0 0 22px -6px currentColor;
+}
+.amb-core {
+  position: absolute;
+  border-radius: 50%;
+  box-shadow: 0 0 30px 10px color-mix(in srgb, var(--settled) 55%, transparent);
+}
+.amb-core.amb-animate { animation: amb-pulse 3.6s ease-in-out infinite; }
+@keyframes amb-pulse { 50% { transform: scale(1.35); opacity: 0.75; } }
+
+/* Monedas: giran sobre su eje vertical y flotan */
+.amb-flip { position: relative; transform-style: preserve-3d; transform: rotateX(var(--tilt, 0deg)); }
+.amb-flip.amb-animate { animation-name: amb-coin; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes amb-coin {
+  from { transform: rotateX(var(--tilt, 0deg)) rotateY(0deg); }
+  to   { transform: rotateX(var(--tilt, 0deg)) rotateY(360deg); }
+}
+.amb-coin-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid;
+  border-radius: 50%;
+  font-family: var(--f-mono);
+  font-weight: 500;
+  backface-visibility: hidden;
+  box-shadow: 0 0 20px -6px currentColor, inset 0 0 0 6px color-mix(in srgb, currentColor 18%, transparent);
+}
+.amb-coin-edge { position: absolute; opacity: 0.55; }
+
+/* Viñeta para legibilidad */
+.amb-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 120% 90% at 50% 40%, transparent 45%, color-mix(in srgb, var(--bg) 85%, transparent) 100%);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .amb-animate { animation: none !important; }
+}
+
+body { isolation: isolate; }
+/* La landing deja ver el fondo; las pantallas de la app (.phone) quedan casi opacas
+   para que el fondo tranquilo no compita con montos y listas. */
+.landing { background: transparent; }
+.phone { background: color-mix(in srgb, var(--bg) 90%, transparent); }
+:root[data-theme="dark"] .phone { background: color-mix(in srgb, #10161e 90%, transparent); }
+@media (max-width: 767px) {
+  .amb-beam { display: none; }
 }

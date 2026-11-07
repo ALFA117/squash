@@ -213,7 +213,7 @@ export default function SignScreen() {
                     <span style={{ fontSize: 14.5, fontWeight: isYou ? 600 : 500 }}>
                       {personNameFor(transfer.from)}
                     </span>
-                    <span style={{ fontSize: 11.5, color: done ? "var(--settled)" : "var(--muted)" }}>
+                    <span style={{ fontSize: 12, color: done ? "var(--settled)" : "var(--muted)" }}>
                       {done ? t("Confirmed", "Confirmó") : isYou ? t("Your confirmation is needed", "Falta tu confirmación") : t("Signing…", "Firmando…")} ·{" "}
                       {formatCents(transfer.cents)} MXN
                       {usd[`${transfer.from}-${transfer.to}`] !== undefined && (
@@ -265,7 +265,7 @@ export default function SignScreen() {
         <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 3px" }}>
           <span style={{ display: "flex", gap: 5 }}>
             {receivers.map((r) => (
-              <span key={r} className="avatar" style={{ width: 26, height: 26, fontSize: 10.5 }}>
+              <span key={r} className="avatar" style={{ width: 26, height: 26, fontSize: 12 }}>
                 {personInitialFor(r)}
               </span>
             ))}
