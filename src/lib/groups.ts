@@ -96,12 +96,22 @@ export function isDbUnreachable(e: unknown): boolean {
  * after they press the button.
  */
 export async function liveBillsReachable(): Promise<boolean> {
+  // The client's own retries (1 s, 2 s, 4 s) made an unreachable database take
+  // ~7 s to report. Ask without them, and give one quick second chance so a
+  // single network blip does not switch the light to "offline".
+  if (await readOnce()) return true;
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  return readOnce();
+}
+
+async function readOnce(): Promise<boolean> {
   try {
     const { error } = await serverClient()
       .from("groups")
       .select("id")
       .limit(1)
-      .abortSignal(AbortSignal.timeout(5_000));
+      .retry(false)
+      .abortSignal(AbortSignal.timeout(4_000));
     // A read that hit its deadline counts as unreachable too.
     return !(error && (isDbUnreachable(error) || /abort|timeout/i.test(error.message ?? "")));
   } catch {

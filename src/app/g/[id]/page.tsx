@@ -15,6 +15,7 @@ import { formatMoney, formatUsd, type Currency } from "@/lib/money";
 import { formatCents } from "@/lib/netting";
 import { checkShares, parseMoney, type SplitMode } from "@/lib/split";
 import { browserClient, supabaseConfigured } from "@/lib/supabase";
+import { useLiveBills } from "@/lib/useLiveBills";
 import { useUsdRate } from "@/lib/useUsdRate";
 
 const SPRING = { type: "spring", stiffness: 380, damping: 30 } as const;
@@ -139,7 +140,12 @@ export default function GroupRoom() {
   // never goes stale if the socket quietly drops. Both start only once the
   // bill has loaded: with the database unreachable (or no such bill) there is
   // nothing to watch, and a socket retrying forever only fills the console.
-  const dbOffline = (loadError as Error | null)?.message === "db_offline";
+  // The shared status light answers in well under a second (cached at the
+  // edge), while a read of this bill against an unreachable database takes
+  // several: whichever says "offline" first wins, until the bill loads.
+  const live = useLiveBills();
+  const dbOffline =
+    (loadError as Error | null)?.message === "db_offline" || (live === "offline" && group === null);
   const watching = group !== null && !dbOffline;
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -214,7 +220,7 @@ export default function GroupRoom() {
   const [seat, setSeat] = useState<{ name: string; url: string } | null>(null);
 
   // ── render states ───────────────────────────────────────────────────────
-  if (loadError !== null && !group) {
+  if ((loadError !== null || dbOffline) && !group) {
     if (dbOffline) {
       return (
         <main className="phone">
@@ -224,8 +230,8 @@ export default function GroupRoom() {
           <div className="room-pad">
             <p className="offline-note" role="status">
               {t(
-                "This bill cannot be opened right now: the bill database cannot be reached. Nothing was charged. The sample trip still settles end to end on Hedera testnet.",
-                "Esta cuenta no se puede abrir ahora: no se puede llegar a la base de datos de las cuentas. No se cobró nada. El viaje de ejemplo sigue liquidando completo en Hedera testnet.",
+                "This bill cannot be opened right now: the bill database cannot be reached. The sample trip still settles end to end on Hedera testnet.",
+                "Esta cuenta no se puede abrir ahora: no se puede llegar a la base de datos de las cuentas. El viaje de ejemplo sigue liquidando completo en Hedera testnet.",
               )}
             </p>
             <Link href="/join" className="btn btn-dark">
