@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server";
-import { createGroup, DB_OFFLINE, GroupError, isDbUnreachable } from "@/lib/groups";
+import { createGroup, DB_OFFLINE, GroupError, isDbUnreachable, liveBillsReachable } from "@/lib/groups";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+/**
+ * GET /api/groups — are live bills available? Answers { live } so the screens
+ * can warn up front when the bill database cannot be reached. Cached briefly
+ * at the edge: it is a status light, not a per-request query.
+ */
+export async function GET() {
+  const live = await liveBillsReachable();
+  return NextResponse.json(live ? { live } : { live, error: DB_OFFLINE }, {
+    headers: { "cache-control": "public, s-maxage=30, stale-while-revalidate=120" },
+  });
+}
 
 /** POST /api/groups — start a bill. Whoever creates it paid it, and is admin. */
 export async function POST(request: Request) {

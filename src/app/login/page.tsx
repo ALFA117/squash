@@ -4,9 +4,11 @@ import Link from "next/link";
 import { LogoMark, Wordmark } from "@/components/Logo";
 import { PressLink } from "@/components/Press";
 import { useLocale } from "@/components/Locale";
+import { useLiveBills } from "@/lib/useLiveBills";
 
 export default function LoginPage() {
   const { t } = useLocale();
+  const live = useLiveBills();
 
   return (
     <main className="phone" style={{ padding: "26px 24px 24px" }}>
@@ -48,6 +50,11 @@ export default function LoginPage() {
         <PressLink href="/nuevo" className="btn btn-ghost">
           {t("Start a bill", "Empezar una cuenta")}
         </PressLink>
+        {live === "offline" && (
+          <p className="offline-note" role="status">
+            {t("Live bills are offline right now: their database cannot be reached. The sample trip still works.", "Las cuentas reales están fuera de línea ahora: no se puede llegar a su base de datos. El viaje de ejemplo sí funciona.")}
+          </p>
+        )}
         <Link href="/" className="join-alt">
           {t("Back to home →", "Volver al inicio →")}
         </Link>

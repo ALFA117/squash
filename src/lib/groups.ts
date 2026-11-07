@@ -90,6 +90,25 @@ export function isDbUnreachable(e: unknown): boolean {
   return /fetch failed|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|getaddrinfo|Supabase server access is not configured/i.test(text);
 }
 
+/**
+ * Can live bills be served right now? One cheap read with a short deadline,
+ * so the screens can say "offline" before anyone fills in a form, instead of
+ * after they press the button.
+ */
+export async function liveBillsReachable(): Promise<boolean> {
+  try {
+    const { error } = await serverClient()
+      .from("groups")
+      .select("id")
+      .limit(1)
+      .abortSignal(AbortSignal.timeout(5_000));
+    // A read that hit its deadline counts as unreachable too.
+    return !(error && (isDbUnreachable(error) || /abort|timeout/i.test(error.message ?? "")));
+  } catch {
+    return false;
+  }
+}
+
 const ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789"; // no 0/o/1/l to misread
 
 function randomId(length: number): string {

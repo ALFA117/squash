@@ -11,6 +11,7 @@ import { saveSession } from "@/lib/groupSession";
 import { explain, fetchWithin } from "@/lib/http";
 import { CURRENCIES, formatUsd, type Currency } from "@/lib/money";
 import { parseMoney } from "@/lib/split";
+import { useLiveBills } from "@/lib/useLiveBills";
 import { useUsdRate } from "@/lib/useUsdRate";
 
 /**
@@ -30,11 +31,13 @@ export default function NewBill() {
   const rate = useUsdRate(currency);
   const reduce = useReducedMotion();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [offline, setOffline] = useState(false);
+  // The raw failure, explained at render time so it follows the language toggle.
+  const [error, setError] = useState<unknown>(null);
+  const live = useLiveBills();
+  const offline = live === "offline" || (error as Error | null)?.message === "db_offline";
 
   const cents = parseMoney(amount);
-  const ready = name.trim() && what.trim() && cents !== null && cents > 0 && !busy;
+  const ready = name.trim() && what.trim() && cents !== null && cents > 0 && !busy && !offline;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,8 +67,7 @@ export default function NewBill() {
       saveSession(data.groupId, { memberId: data.memberId, secret: data.secret });
       router.push(`/g/${data.groupId}`);
     } catch (err) {
-      setOffline((err as Error)?.message === "db_offline");
-      setError(explain(err, t));
+      setError(err);
       setBusy(false);
     }
   }
@@ -83,6 +85,16 @@ export default function NewBill() {
       </div>
 
       <form onSubmit={submit} className="bill-form">
+        {offline && (
+          <div className="offline-note" role="status">
+            <strong>{t("Live bills are offline right now.", "Las cuentas reales están fuera de línea ahora.")}</strong>{" "}
+            {t(
+              "The bill database cannot be reached, so a new bill cannot be opened. The sample trip still settles end to end on Hedera testnet.",
+              "No se puede llegar a la base de datos de las cuentas, así que no se puede abrir una nueva. El viaje de ejemplo sigue liquidando completo en Hedera testnet.",
+            )}{" "}
+            <Link href="/join">{t("Open the sample trip →", "Abrir el viaje de ejemplo →")}</Link>
+          </div>
+        )}
         <p className="bill-lead">
           {t(
             "You paid. Tell us how much, then show the QR at the table — everyone scans in and sees their share.",
@@ -174,21 +186,19 @@ export default function NewBill() {
           )}
         </label>
 
-        {error && (
+        {error !== null && !offline && (
           <p className="form-error" role="alert">
-            {error}
-            {offline && (
-              <>
-                {" "}
-                <Link href="/join">{t("Open the sample trip →", "Abrir el viaje de ejemplo →")}</Link>
-              </>
-            )}
+            {explain(error, t)}
           </p>
         )}
 
         <div className="bill-actions">
           <PressButton type="submit" className="btn btn-dark" disabled={!ready}>
-            {busy ? t("Creating…", "Creando…") : t("Create and get the QR", "Crear y obtener el QR")}
+            {busy
+              ? t("Creating…", "Creando…")
+              : offline
+                ? t("Live bills are offline", "Cuentas reales fuera de línea")
+                : t("Create and get the QR", "Crear y obtener el QR")}
           </PressButton>
         </div>
       </form>

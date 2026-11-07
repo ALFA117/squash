@@ -6,6 +6,7 @@ import { PressLink } from "@/components/Press";
 import { useLocale } from "@/components/Locale";
 import { useGroup } from "@/components/GroupProvider";
 import { formatCents, netExpenses } from "@/lib/netting";
+import { useLiveBills } from "@/lib/useLiveBills";
 
 /**
  * The door to the sample trip.
@@ -18,6 +19,7 @@ import { formatCents, netExpenses } from "@/lib/netting";
 export default function JoinScreen() {
   const { name, dates, people, expenses } = useGroup();
   const { t } = useLocale();
+  const live = useLiveBills();
   const { grossEdges, transfers } = netExpenses(expenses);
   const total = expenses.reduce((sum, e) => sum + e.cents, 0);
 
@@ -81,9 +83,15 @@ export default function JoinScreen() {
         <PressLink href="/grupo" className="btn btn-dark">
           {t("Open the trip", "Abrir el viaje")}
         </PressLink>
-        <Link href="/nuevo" className="join-alt">
-          {t("Or split a real bill with your table →", "O divide una cuenta real con tu mesa →")}
-        </Link>
+        {live === "offline" ? (
+          <span className="join-alt" role="status" style={{ color: "var(--muted)", lineHeight: 1.45 }}>
+            {t("Splitting a real bill is offline right now — this sample trip still settles on Hedera testnet.", "Dividir una cuenta real está fuera de línea ahora — este viaje de ejemplo sí liquida en Hedera testnet.")}
+          </span>
+        ) : (
+          <Link href="/nuevo" className="join-alt">
+            {t("Or split a real bill with your table →", "O divide una cuenta real con tu mesa →")}
+          </Link>
+        )}
       </div>
     </main>
   );
