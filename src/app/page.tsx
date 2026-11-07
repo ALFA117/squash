@@ -65,19 +65,37 @@ export default function Landing() {
             )}
           </p>
           <div className="lp-cta">
-            <Magnetic>
-              <PressLink href="/nuevo" className="btn btn-dark lp-cta-main">
-                {t("Split a bill", "Dividir una cuenta")}
-                <svg className="cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </PressLink>
-            </Magnetic>
-            <Magnetic strength={0.15}>
-              <PressLink href="/join" className="btn btn-ghost lp-cta-alt">
-                {t("See the sample trip", "Ver el viaje de ejemplo")}
-              </PressLink>
-            </Magnetic>
+            {/* With live bills offline, the sample trip is what works, so it
+                takes the primary button instead of a form that cannot open. */}
+            {live === "offline" ? (
+              <>
+                <Magnetic>
+                  <PressLink href="/join" className="btn btn-dark lp-cta-main">
+                    {t("See the sample trip", "Ver el viaje de ejemplo")}
+                    <CtaArrow />
+                  </PressLink>
+                </Magnetic>
+                <Magnetic strength={0.15}>
+                  <PressLink href="/nuevo" className="btn btn-ghost lp-cta-alt">
+                    {t("Split a bill", "Dividir una cuenta")}
+                  </PressLink>
+                </Magnetic>
+              </>
+            ) : (
+              <>
+                <Magnetic>
+                  <PressLink href="/nuevo" className="btn btn-dark lp-cta-main">
+                    {t("Split a bill", "Dividir una cuenta")}
+                    <CtaArrow />
+                  </PressLink>
+                </Magnetic>
+                <Magnetic strength={0.15}>
+                  <PressLink href="/join" className="btn btn-ghost lp-cta-alt">
+                    {t("See the sample trip", "Ver el viaje de ejemplo")}
+                  </PressLink>
+                </Magnetic>
+              </>
+            )}
           </div>
           {offlineNote}
         </div>
@@ -354,5 +372,13 @@ function Words({ text, offset = 0 }: { text: string; offset?: number }) {
         </span>
       ))}
     </>
+  );
+}
+
+function CtaArrow() {
+  return (
+    <svg className="cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
   );
 }
