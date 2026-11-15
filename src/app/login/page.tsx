@@ -18,12 +18,12 @@ export default function LoginPage() {
       </div>
 
       <div className="join-trip">
-        <span className="label">{t("LOGIN", "INICIO DE SESIÓN")}</span>
+        <span className="label">{t("Sign in", "Iniciar sesión")}</span>
         <h1 className="join-title">{t("No separate login required", "No hace falta un login aparte")}</h1>
-        <p className="join-sub">
+        <p className="join-sub login-sub">
           {t(
-            "This demo remains open by design. Open the sample trip or start a bill instantly.",
-            "Esta demo se mantiene abierta por diseño. Abre el viaje de ejemplo o empieza una cuenta al instante.",
+            "Squash has no accounts to create. Open the sample trip, or start a bill at the table.",
+            "Squash no pide crear una cuenta. Abre el viaje de ejemplo o empieza una cuenta en la mesa.",
           )}
         </p>
 
@@ -56,7 +56,7 @@ export default function LoginPage() {
           </p>
         )}
         <Link href="/" className="join-alt">
-          {t("Back to home →", "Volver al inicio →")}
+          {t("Back to home", "Volver al inicio")}
         </Link>
       </div>
     </main>
