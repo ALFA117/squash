@@ -1,0 +1,256 @@
+/* ══ App screens (formal redesign) ════════════════════════════════════════
+   The working screens: a flat paper panel, defined 1px borders, small hard
+   shadows only on what you can press or what holds money. Colours keep a
+   fixed meaning: green settled, rust owed, amber waiting. */
+
+body,
+:root[data-theme="dark"] body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 16px;
+}
+
+.phone,
+:root[data-theme="dark"] .phone {
+  width: min(440px, 100%);
+  background: var(--bg);
+  border-color: var(--rule-strong);
+  box-shadow: none;
+}
+
+@media (min-width: 480px) {
+  body { padding: 32px 0; }
+  .phone,
+  :root[data-theme="dark"] .phone {
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+}
+
+.screen-head,
+:root[data-theme="dark"] .screen-head {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 20px 20px 16px;
+}
+
+.title {
+  font-family: var(--f-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.subtitle { font-size: 13px; }
+
+.label {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.card,
+.summary-card,
+.note-card,
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .summary-card,
+:root[data-theme="dark"] .note-card {
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.summary-card strong {
+  font-family: var(--f-mono);
+  font-weight: 500;
+}
+
+.row { background: transparent; }
+
+.avatar,
+:root[data-theme="dark"] .avatar {
+  background: var(--surface-2);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-2);
+  box-shadow: none;
+}
+
+.avatar.you,
+:root[data-theme="dark"] .avatar.you {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.money,
+.headline-count { font-family: var(--f-mono); }
+
+/* buttons: ink, green for the money action, hairline ghost */
+.btn,
+:root[data-theme="dark"] .btn {
+  height: 52px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--ink);
+  font-size: 15.5px;
+  font-weight: 600;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.btn:hover:not(:disabled) {
+  opacity: 1;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.btn-dark,
+:root[data-theme="dark"] .btn-dark {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+  box-shadow: 3px 3px 0 var(--settled);
+}
+
+.btn-dark:hover:not(:disabled) { box-shadow: 4px 4px 0 var(--settled); }
+.btn-dark:active:not(:disabled) { box-shadow: 1px 1px 0 var(--settled); }
+
+.btn-settle,
+:root[data-theme="dark"] .btn-settle {
+  background: var(--settled);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+:root[data-theme="dark"] .btn-settle { color: #07130d; border-color: var(--settled-strong); box-shadow: 3px 3px 0 var(--ink); }
+
+.btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--rule-strong);
+  box-shadow: none;
+}
+
+.btn-ghost:hover:not(:disabled) { border-color: var(--ink); box-shadow: var(--shadow-hard-sm); }
+
+.btn:disabled,
+.btn:disabled:not([aria-busy="true"]) {
+  box-shadow: none;
+  transform: none;
+}
+
+.foot,
+:root[data-theme="dark"] .foot {
+  background: var(--surface);
+  border-top: 1px solid var(--rule-strong);
+  padding: 16px 20px 24px;
+}
+
+.receipt {
+  background: var(--rail-wash);
+  border: 1px solid color-mix(in srgb, var(--rail) 30%, transparent);
+  border-left: 3px solid var(--rail);
+  border-radius: var(--radius-sm);
+}
+
+:root[data-theme="dark"] .receipt { background: var(--rail-wash); }
+
+/* inputs */
+.text-input,
+.money-input {
+  font-family: var(--f-body);
+  font-size: 16px;
+  border-radius: var(--radius-sm);
+}
+
+.text-input,
+.money-input {
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+}
+
+.text-input:focus,
+.money-input:focus,
+.text-input:focus-within,
+.money-input:focus-within {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.segmented,
+:root[data-theme="dark"] .segmented {
+  background: var(--surface-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+}
+
+.segment-pill,
+:root[data-theme="dark"] .segment-pill {
+  background: var(--surface);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.offline-note {
+  background: var(--rail-wash);
+  border: 1px solid color-mix(in srgb, var(--rail) 35%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+}
+
+.settled-banner,
+:root[data-theme="dark"] .settled-banner {
+  border-radius: var(--radius);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+/* brand marks on app screens: no glossy badge */
+.logo-badge,
+:root[data-theme="dark"] .logo-badge {
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.logo-badge:hover { transform: none; }
+
+.brand-mark { box-shadow: none; }
+
+.brand-name { font-family: var(--f-display); }
+
+/* top controls: square-ish, bordered, no blur */
+.theme-toggle,
+.language-toggle,
+:root[data-theme="dark"] .theme-toggle,
+:root[data-theme="dark"] .language-toggle {
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.theme-toggle { border-radius: var(--radius-sm); }
+.language-toggle { border-radius: var(--radius-sm); }
+.language-option { border-radius: 4px; }
+
+.join-list li::before,
+:root[data-theme="dark"] .join-list li::before {
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.join-alt { color: var(--settled); }
+
+@media (min-width: 480px) {
+  :root[data-theme="dark"] .phone { border-color: var(--rule-strong); box-shadow: 6px 6px 0 #000; }
+}

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./landing.css";
+import "./app.css";
 import { LanguageToggle, LocaleProvider } from "@/components/Locale";
 import Providers from "@/components/Providers";
-import { AmbientBackground } from "@/components/AmbientBackground";
 import { THEME_SCRIPT, ThemeToggle } from "@/components/ThemeToggle";
 
 const SITE = "https://squash-pay.vercel.app";
@@ -35,8 +36,8 @@ export const metadata: Metadata = {
 
 export const viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2f3f1" },
-    { media: "(prefers-color-scheme: dark)", color: "#0e1319" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f4ef" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0f11" },
   ],
 };
 
@@ -50,11 +51,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
         />
       </head>
       <body>
-        <AmbientBackground />
         <LocaleProvider>
           <Providers>
             <div className="top-controls">
