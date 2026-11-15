@@ -45,17 +45,7 @@ export default function GroupScreen() {
           <Link
             href="/expense"
             aria-label={t("Add expense", "Agregar gasto")}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: "var(--surface-2)",
-              border: "1px solid var(--rule)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--ink)",
-            }}
+            className="head-icon"
           >
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
@@ -64,18 +54,7 @@ export default function GroupScreen() {
         </div>
       </div>
 
-      <section
-        style={{
-          margin: "4px 22px 0",
-          background: "var(--surface)",
-          border: "1px solid var(--rule)",
-          borderRadius: 12,
-          padding: "15px 18px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-        }}
-      >
+      <section className="balance-card">
         <span className="label">{t("YOUR BALANCE", "TU SALDO")}</span>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
           <span

@@ -254,3 +254,89 @@ body,
 @media (min-width: 480px) {
   :root[data-theme="dark"] .phone { border-color: var(--rule-strong); box-shadow: 6px 6px 0 #000; }
 }
+
+/* ── top controls: part of the layout, never floating over it ──────────────
+   On the working screens they sit in a slim toolbar aligned with the panel;
+   on the landing they sit at the right end of the nav, inside the 1180px
+   column. */
+.top-controls {
+  position: static;
+  justify-content: flex-end;
+  width: min(440px, 100%);
+  margin: 0 auto;
+  padding: 8px 16px;
+}
+
+@media (min-width: 480px) {
+  body { padding-top: 16px; }
+  .top-controls { padding: 0 0 16px; }
+}
+
+body:has(.landing) { padding: 0; }
+
+body:has(.landing) .top-controls {
+  position: absolute;
+  top: 14px;
+  right: max(clamp(16px, 4vw, 40px), calc((100% - 1180px) / 2));
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 720px) {
+  body:has(.landing) .top-controls { top: 12px; }
+}
+
+/* ── small pieces of the group screen ─────────────────────────────────── */
+.head-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  color: var(--ink);
+  transition: transform var(--duration-press) ease-out, box-shadow var(--duration-press) ease-out;
+}
+
+.head-icon:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
+.head-icon:focus-visible { outline: 2px solid var(--settled); outline-offset: 2px; }
+
+.balance-card {
+  margin: 20px 22px 0;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+:root[data-theme="dark"] .balance-card { border-color: var(--rule-strong); box-shadow: 3px 3px 0 #000; }
+
+/* sheets and dialogs: hard frame, flat scrim */
+.sheet-scrim { backdrop-filter: none; background: rgba(8, 12, 17, 0.6); }
+.sheet { border: 1px solid var(--ink); border-radius: var(--radius); box-shadow: 4px 4px 0 var(--ink); }
+:root[data-theme="dark"] .sheet { border-color: var(--rule-strong); box-shadow: 4px 4px 0 #000; }
+
+/* cards across the app: one card language */
+.card, .summary-card, .note-card, .join-summary-item, .group-qr, .group-preview, .join-step {
+  border-radius: var(--radius);
+}
+
+/* sign-in screen: the explanation is prose, not metadata */
+.login-sub {
+  margin-top: 12px;
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.55;
+  letter-spacing: 0;
+  color: var(--muted);
+  max-width: 34ch;
+  margin-inline: auto;
+}
