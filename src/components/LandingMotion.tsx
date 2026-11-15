@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  animate,
   motion,
   useInView,
   useMotionTemplate,
@@ -11,7 +10,7 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 /**
  * Motion for the landing page — every piece answers to something the reader
@@ -98,84 +97,24 @@ export function TiltCard({ children, className = "", max = 7 }: { children: Reac
  */
 export function CountUp({
   to,
-  from = 0,
   format,
-  duration = 1.4,
   className,
   style,
 }: {
   to: number;
+  /** Kept for call-site compatibility; the figure no longer counts. */
   from?: number;
   format: (n: number) => string;
   duration?: number;
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const reduce = useReducedMotion();
-  const inView = useInView(ref, { once: true, amount: 0.6 });
-  const [text, setText] = useState(format(to));
-  const armed = useRef(false);
-  // Callers pass an inline formatter; keep the latest in a ref so a new
-  // function each render does not restart the count on every frame.
-  const fmt = useRef(format);
-  fmt.current = format;
-
-  // Before it is seen, show the starting value — only once the page is live,
-  // and only while the number is still BELOW the fold. If the reader jumps
-  // past it (End key, a restored scroll, an anchor) it never counts, so it
-  // must show the true figure rather than stay stuck on the start value.
-  const done = useRef(false);
-  const target = useRef(to);
-  target.current = to;
-  useEffect(() => {
-    if (reduce || done.current || typeof IntersectionObserver === "undefined") return;
-    if (!armed.current) {
-      const r = ref.current?.getBoundingClientRect();
-      if (!r || r.top < window.innerHeight) return;
-      armed.current = true;
-      setText(fmt.current(from));
-    }
-
-    const skipped = () => {
-      const now = ref.current?.getBoundingClientRect();
-      if (!done.current && now && now.bottom < 0) {
-        done.current = true;
-        setText(fmt.current(target.current));
-        window.removeEventListener("scroll", skipped);
-      }
-    };
-    window.addEventListener("scroll", skipped, { passive: true });
-    return () => window.removeEventListener("scroll", skipped);
-  }, [reduce, from]);
-
-  useEffect(() => {
-    // Not counting (seen on load, already counted, or reduced motion): show
-    // the true figure, including a new one if `to` changes afterwards.
-    if (reduce || !armed.current || done.current) {
-      setText(fmt.current(to));
-      return;
-    }
-    if (!inView) return;
-    done.current = true;
-    const controls = animate(from, to, {
-      duration,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: (v) => setText(fmt.current(v)),
-    });
-    // If frames stall (a hidden tab, a starved device), land on the true
-    // number anyway — a count-up must never leave a wrong figure on screen.
-    const settle = setTimeout(() => setText(fmt.current(to)), (duration + 0.6) * 1000);
-    return () => {
-      controls.stop();
-      clearTimeout(settle);
-      setText(fmt.current(to));
-    };
-  }, [inView, reduce, from, to, duration]);
-
+  // The true figure, always. A count-up shows a start value (0, or the
+  // number before netting) until an observer fires; in a full-page capture,
+  // a link preview or a stalled tab that start value reads as real data.
   return (
-    <span ref={ref} className={className} style={style}>
-      {text}
+    <span className={className} style={style}>
+      {format(to)}
     </span>
   );
 }

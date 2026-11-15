@@ -222,6 +222,7 @@ export default function Landing() {
             <div className="lp-meter" aria-hidden="true">
               <span className="on" /><span className="on" /><span className="on" /><span />
             </div>
+            <span className="lp-meter-cap">{t("Example: 3 of 4 confirmed — nothing moves yet", "Ejemplo: 3 de 4 confirmaron — aún no se mueve nada")}</span>
           </article>
 
           <article className="lp-cell">
@@ -350,7 +351,7 @@ function BillCard({ rate }: { rate: number | null }) {
   const { t } = useLocale();
   const share = SAMPLE_BILL / 4;
   const rows = [
-    { name: t("You", "Tú"), initial: "T", state: "yes" as const, you: true },
+    { name: t("You", "Tú"), initial: t("Y", "T"), state: "yes" as const, you: true },
     { name: "Rosa", initial: "R", state: "paid" as const },
     { name: "Mariana", initial: "M", state: "yes" as const },
     { name: "Diego", initial: "D", state: "wait" as const },

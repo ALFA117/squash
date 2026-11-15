@@ -52,6 +52,7 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
   const { t } = useLocale();
   const n = nodes.length;
   const at = new Map<string, { x: number; y: number }>();
+  const initialOf = new Map(nodes.map((node) => [node.id, node.initial]));
 
   nodes.forEach((node, i) => {
     const angle = (-90 + (360 / n) * i) * (Math.PI / 180);
@@ -160,7 +161,7 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
                   } as React.CSSProperties
                 }
               >
-                {t.from[0].toUpperCase()}→{t.to[0].toUpperCase()}
+                {initialOf.get(t.from) ?? t.from[0].toUpperCase()}→{initialOf.get(t.to) ?? t.to[0].toUpperCase()}
               </text>
             </g>
           );
@@ -215,8 +216,8 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
         x={CX}
         y={H - 6}
         textAnchor="middle"
-        fontFamily="var(--f-mono)"
-        fontSize="12.5"
+        fontFamily="var(--f-body)"
+        fontSize="11"
         letterSpacing="0"
         fill="var(--muted)"
       >
