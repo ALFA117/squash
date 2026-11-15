@@ -217,10 +217,10 @@ export function DebtGraph({ nodes, grossEdges, transfers }: Props) {
         textAnchor="middle"
         fontFamily="var(--f-mono)"
         fontSize="12.5"
-        letterSpacing="0.3"
+        letterSpacing="0"
         fill="var(--muted)"
       >
-        {t("FAINT LINES ARE WHAT THEY OWED BEFORE", "LO TENUE ES LO QUE SE DEBÍAN ANTES")}
+        {t("Faint lines: what they owed before", "Líneas tenues: lo que se debían antes")}
       </text>
     </svg>
   );
